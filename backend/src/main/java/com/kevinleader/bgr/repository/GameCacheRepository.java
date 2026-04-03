@@ -14,4 +14,16 @@ public interface GameCacheRepository extends JpaRepository<GameCache, Long> {
 
     @Query("SELECT g FROM GameCache g WHERE g.lastHltbSync IS NULL")
     List<GameCache> findAllNeedingHltbSync();
+
+    @Query("""
+            SELECT g
+            FROM GameCache g
+            WHERE g.igdbRating IS NOT NULL
+              AND g.igdbRatingCount >= 10
+              AND g.hltbHours IS NOT NULL
+              AND g.isFree = false
+              AND g.isMultiplayerOnly = false
+              AND (g.cheapsharkPriceCents IS NOT NULL OR g.estimatedPriceCents IS NOT NULL)
+            """)
+    List<GameCache> findAllRankable();
 }

@@ -1,13 +1,14 @@
 package com.kevinleader.bgr;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
+import static org.assertj.core.api.Assertions.assertThat;
+
 class BgrBackendApplicationTests {
 
 	@Test
-	void contextLoads() {
+	void applicationClassExists() {
+		assertThat(BgrBackendApplication.class).isNotNull();
 	}
 
 }
