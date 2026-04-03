@@ -2,7 +2,7 @@ package com.kevinleader.bgr.entity;
 
 import jakarta.persistence.*;
 import lombok.Getter;
-<parameter name="content">import lombok.NoArgsConstructor;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.OffsetDateTime;
