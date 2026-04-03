@@ -2,10 +2,16 @@
 
 ## Active Queue
 
-1. Decide whether to do a short Phase 4 auth polish pass or move directly into Phase 5 user features.
-2. If staying in Phase 4, add explicit 401/403 behavior and role-route tests.
-3. If moving to Phase 5, start with saved ranking configurations or wishlist flows.
-4. Eventually optimize ranking queries if the cached dataset or traffic grows enough to justify moving filters into the DB.
+1. Phase 7: scaffold React + TypeScript + Vite frontend in `frontend/` at repo root.
+2. Phase 8: frontend ranking page (public, no auth required).
+3. Phase 9: frontend user features (login/signup, saved ranking configs).
+4. Phase 10: deployment and hardening (Vercel for frontend, Railway already in place for backend).
+
+## Deferred / Known Gaps
+
+- Wishlist feature deferred — only useful once price alert infrastructure exists.
+- `POST /admin/sync` is synchronous; make async if timeout becomes a problem.
+- Token revocation / immediate effect of deactivation — deferred until there's a reason to add complexity.
 
 ## Usage
 
