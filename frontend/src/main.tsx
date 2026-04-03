@@ -1,8 +1,11 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { AuthProvider } from './context/AuthContext'
 import App from './App.tsx'
 import RankingsPage from './pages/RankingsPage.tsx'
+import LoginPage from './pages/LoginPage.tsx'
+import SignupPage from './pages/SignupPage.tsx'
 import './index.css'
 
 const rootEl = document.getElementById('root');
@@ -10,12 +13,16 @@ if (!rootEl) throw new Error('Missing #root element');
 
 createRoot(rootEl).render(
   <StrictMode>
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<App />}>
-          <Route index element={<RankingsPage />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<App />}>
+            <Route index element={<RankingsPage />} />
+            <Route path="login" element={<LoginPage />} />
+            <Route path="signup" element={<SignupPage />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   </StrictMode>,
 )

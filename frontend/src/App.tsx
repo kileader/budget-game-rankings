@@ -1,12 +1,11 @@
 import { Outlet } from 'react-router-dom'
+import Nav from './components/Nav'
 
 export default function App() {
   return (
     <>
       <header>
-        <nav>
-          <span className="site-title">Budget Game Rankings</span>
-        </nav>
+        <Nav />
       </header>
       <main>
         <Outlet />

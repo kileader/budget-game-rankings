@@ -2,7 +2,7 @@
 
 ## Active Queue
 
-1. Phase 9: frontend user features (login/signup, saved ranking configs).
+1. Phase 10: deployment and hardening (Vercel for frontend, Railway already in place for backend).
 2. Add backend metadata endpoints (GET /platforms, GET /genres) to enable platform/genre filter UI.
 3. Phase 10: deployment and hardening (Vercel for frontend, Railway already in place for backend).
 

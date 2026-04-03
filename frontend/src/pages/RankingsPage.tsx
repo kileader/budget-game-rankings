@@ -1,8 +1,11 @@
 import { useEffect, useReducer, useCallback } from 'react';
 import './RankingsPage.css';
 import { getRankings } from '../api/rankings';
+import { createConfig } from '../api/rankingConfigs';
 import { ApiError } from '../api/client';
-import type { RankingPage, RankingQuery, RankingResult, RankingSort } from '../types';
+import { useAuth } from '../context/AuthContext';
+import SavedConfigs from '../components/SavedConfigs';
+import type { RankingConfig, RankingPage, RankingQuery, RankingResult, RankingSort } from '../types';
 
 const PAGE_LIMIT = 50;
 
@@ -39,6 +42,7 @@ type State = {
 type Action =
   | { type: 'SET_FILTER'; field: keyof Filters; value: string }
   | { type: 'APPLY_FILTERS' }
+  | { type: 'LOAD_CONFIG'; config: RankingConfig }
   | { type: 'SET_OFFSET'; offset: number }
   | { type: 'FETCH_START' }
   | { type: 'FETCH_SUCCESS'; data: RankingPage }
@@ -77,12 +81,45 @@ function filtersToQuery(filters: Filters, offset: number): RankingQuery {
   return q;
 }
 
+function configToFilters(config: RankingConfig): Filters {
+  return {
+    releaseYearMin: config.releaseYearMin !== null ? String(config.releaseYearMin) : '',
+    releaseYearMax: config.releaseYearMax !== null ? String(config.releaseYearMax) : '',
+    minPriceDollars: config.minPriceCents !== null ? String(config.minPriceCents / 100) : '',
+    maxPriceDollars: config.maxPriceCents !== null ? String(config.maxPriceCents / 100) : '',
+    minPlaytimeHours: config.minPlaytimeHours !== null ? String(config.minPlaytimeHours) : '',
+    maxPlaytimeHours: config.maxPlaytimeHours !== null ? String(config.maxPlaytimeHours) : '',
+    sort: 'VALUE_SCORE',
+  };
+}
+
+function filtersToConfigRequest(name: string, filters: Filters) {
+  const req: { name: string; releaseYearMin?: number; releaseYearMax?: number; minPriceCents?: number; maxPriceCents?: number; minPlaytimeHours?: number; maxPlaytimeHours?: number } = { name };
+  const yrMin = safeInt(filters.releaseYearMin);
+  if (yrMin !== undefined) req.releaseYearMin = yrMin;
+  const yrMax = safeInt(filters.releaseYearMax);
+  if (yrMax !== undefined) req.releaseYearMax = yrMax;
+  const minP = safeFloat(filters.minPriceDollars);
+  if (minP !== undefined) req.minPriceCents = Math.round(minP * 100);
+  const maxP = safeFloat(filters.maxPriceDollars);
+  if (maxP !== undefined) req.maxPriceCents = Math.round(maxP * 100);
+  const minH = safeFloat(filters.minPlaytimeHours);
+  if (minH !== undefined) req.minPlaytimeHours = minH;
+  const maxH = safeFloat(filters.maxPlaytimeHours);
+  if (maxH !== undefined) req.maxPlaytimeHours = maxH;
+  return req;
+}
+
 function reducer(state: State, action: Action): State {
   switch (action.type) {
     case 'SET_FILTER':
       return { ...state, filters: { ...state.filters, [action.field]: action.value } };
     case 'APPLY_FILTERS':
       return { ...state, offset: 0, appliedQuery: filtersToQuery(state.filters, 0) };
+    case 'LOAD_CONFIG': {
+      const filters = configToFilters(action.config);
+      return { ...state, filters, offset: 0, appliedQuery: filtersToQuery(filters, 0) };
+    }
     case 'SET_OFFSET':
       return { ...state, offset: action.offset, appliedQuery: filtersToQuery(state.filters, action.offset) };
     case 'FETCH_START':
@@ -255,6 +292,7 @@ function Pagination({
 // --- Page ---
 
 export default function RankingsPage() {
+  const { token, isLoggedIn } = useAuth();
   const [state, dispatch] = useReducer(reducer, initialState);
   const { filters, appliedQuery, offset, data, loading, error } = state;
 
@@ -273,10 +311,23 @@ export default function RankingsPage() {
 
   useEffect(() => { void fetchData(); }, [fetchData]);
 
+  async function handleSaveConfig(name: string) {
+    if (!token) return;
+    await createConfig(filtersToConfigRequest(name, filters), token);
+  }
+
   return (
     <div className="rankings-page">
       <h1>Game Rankings</h1>
       <p className="rankings-subtitle">Ranked by value: rating × playtime ÷ price.</p>
+
+      {isLoggedIn && token && (
+        <SavedConfigs
+          token={token}
+          onLoad={config => dispatch({ type: 'LOAD_CONFIG', config })}
+          onSave={handleSaveConfig}
+        />
+      )}
 
       <FilterBar
         filters={filters}

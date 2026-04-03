@@ -54,28 +54,43 @@ export type SignupRequest = {
 
 export type AuthResponse = {
   token: string;
+  username: string;
+  role: string;
 };
 
-export type UserProfile = {
+export type CurrentUser = {
   id: number;
   username: string;
   email: string;
-  role: 'USER' | 'ADMIN';
-  active: boolean;
+  role: string;
 };
 
 // --- Ranking Configs ---
-// Note: RankingConfig.filters shape needs verification against backend RankingConfigDto before Phase 9.
+// Flat shape — mirrors backend RankingConfigDto directly (no nested filters object).
 
 export type RankingConfig = {
   id: number;
   name: string;
-  filters: RankingQuery;
+  platformIds: number[] | null;
+  genreIds: number[] | null;
+  releaseYearMin: number | null;
+  releaseYearMax: number | null;
+  minPriceCents: number | null;
+  maxPriceCents: number | null;
+  minPlaytimeHours: number | null;
+  maxPlaytimeHours: number | null;
   createdAt: string;
   updatedAt: string;
 };
 
 export type RankingConfigRequest = {
   name: string;
-  filters: RankingQuery;
+  platformIds?: number[];
+  genreIds?: number[];
+  releaseYearMin?: number;
+  releaseYearMax?: number;
+  minPriceCents?: number;
+  maxPriceCents?: number;
+  minPlaytimeHours?: number;
+  maxPlaytimeHours?: number;
 };

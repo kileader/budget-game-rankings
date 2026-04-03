@@ -3,13 +3,15 @@
 ## Current State
 
 - Backend Phases 1–6 complete.
-- Phase 7 complete: React + TypeScript + Vite frontend scaffolded in `frontend/`.
+- Phase 7 complete: React + TypeScript + Vite frontend scaffolded.
 - Phase 8 complete: public rankings page at `/`.
-  - `RankingsPage` fetches `GET /rankings`, renders results table with cover images and external links.
-  - Filters: release year range, price range (dollars ↔ cents conversion), playtime range, sort.
-  - Offset/limit pagination (50 per page).
-  - `ApiError` used for typed error handling.
-  - Platform/genre filters deferred — no backend metadata endpoints yet.
+- Phase 9 complete: login, signup, saved ranking configs.
+  - `AuthContext` wraps app; token/username/role stored in localStorage, exposed via `useAuth()`.
+  - `LoginPage` at `/login`, `SignupPage` at `/signup` — both redirect to `/` on success.
+  - `Nav` shows login/logout and username based on auth state.
+  - `SavedConfigs` component on rankings page (visible when logged in): list, load, save, delete.
+  - Loading a config populates filter bar and re-fetches. Saving sends current filter state as a new config.
+  - Sort is not persisted in saved configs (backend doesn't store it).
 
 ## Latest Snapshot
 
@@ -19,11 +21,16 @@
 
 ## Files Recently Relevant
 
-- `frontend/src/pages/RankingsPage.tsx`
-- `frontend/src/api/rankings.ts`
-- `frontend/src/types/index.ts`
-- `frontend/src/api/client.ts`
 - `frontend/src/main.tsx`
+- `frontend/src/context/AuthContext.tsx`
+- `frontend/src/components/Nav.tsx`
+- `frontend/src/components/SavedConfigs.tsx`
+- `frontend/src/pages/RankingsPage.tsx`
+- `frontend/src/pages/LoginPage.tsx`
+- `frontend/src/pages/SignupPage.tsx`
+- `frontend/src/api/auth.ts`
+- `frontend/src/api/rankingConfigs.ts`
+- `frontend/src/types/index.ts`
 
 ## Verification
 
@@ -32,13 +39,14 @@
 
 ## Open Risks / Notes
 
-- `POST /admin/sync` is synchronous and will block the HTTP connection for the full cache refresh duration (potentially minutes). Acceptable for a single admin user with log access.
-- `listUsers()` uses `findAll()` with no pagination. Fine at current scale.
-- Deactivating a user or changing their role has no immediate effect on active JWT sessions. Tokens remain valid until natural expiry (24h). Known tradeoff, no token revocation mechanism in place.
-- Ranking filter/sort is still in-memory after fetching the rankable set.
-- `RankingConfig.filters` shape not yet verified against backend `RankingConfigDto` — check before Phase 9.
-- Platform/genre filter UI needs backend metadata endpoints (`GET /platforms`, `GET /genres`) before it can be built.
+- `POST /admin/sync` is synchronous. Acceptable for now.
+- `listUsers()` has no pagination. Fine at current scale.
+- JWT sessions not invalidated on deactivate/role change. Known tradeoff.
+- Ranking filter/sort is in-memory after cache fetch.
+- Platform/genre filter UI needs backend metadata endpoints before it can be built.
+- CSS is functional but not polished; all styles are desktop-first (`max-width` queries). Flip to mobile-first (`min-width`) in a styling pass.
+- Token stored in localStorage — acceptable for this app, but XSS-accessible. No plans to change.
 
 ## Next Sensible Step
 
-- Phase 9: frontend user features (login/signup, saved ranking configs).
+- Phase 10: deployment and hardening (Vercel for frontend, Railway already in place for backend).
