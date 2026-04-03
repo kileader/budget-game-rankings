@@ -59,7 +59,7 @@ public class IgdbClient {
         if (cachedToken != null && Instant.now().isBefore(tokenExpiry.minusSeconds(60))) {
             return cachedToken;
         }
-        URI uri = UriComponentsBuilder.fromHttpUrl(authUrl)
+        URI uri = UriComponentsBuilder.fromUriString(authUrl)
                 .queryParam("client_id", clientId)
                 .queryParam("client_secret", clientSecret)
                 .queryParam("grant_type", "client_credentials")
