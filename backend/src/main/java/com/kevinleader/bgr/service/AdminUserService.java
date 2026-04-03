@@ -3,6 +3,7 @@ package com.kevinleader.bgr.service;
 import com.kevinleader.bgr.dto.admin.AdminUserDto;
 import com.kevinleader.bgr.entity.AppUser;
 import com.kevinleader.bgr.repository.AppUserRepository;
+import com.kevinleader.bgr.exception.NotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -29,13 +30,19 @@ public class AdminUserService {
         return toDto(findOrThrow(id));
     }
 
-    public AdminUserDto setActive(Long id, boolean active) {
+    public AdminUserDto setActive(Long callerId, Long id, boolean active) {
+        if (callerId.equals(id)) {
+            throw new IllegalArgumentException("Cannot change your own active status");
+        }
         AppUser user = findOrThrow(id);
         user.setActive(active);
         return toDto(appUserRepository.save(user));
     }
 
-    public AdminUserDto setRole(Long id, String role) {
+    public AdminUserDto setRole(Long callerId, Long id, String role) {
+        if (callerId.equals(id)) {
+            throw new IllegalArgumentException("Cannot change your own role");
+        }
         String normalized = role.toUpperCase();
         if (!VALID_ROLES.contains(normalized)) {
             throw new IllegalArgumentException("Invalid role: " + role + ". Must be USER or ADMIN");
@@ -47,7 +54,7 @@ public class AdminUserService {
 
     private AppUser findOrThrow(Long id) {
         return appUserRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new NotFoundException("User not found"));
     }
 
     private AdminUserDto toDto(AppUser user) {

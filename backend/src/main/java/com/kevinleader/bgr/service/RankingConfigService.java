@@ -5,6 +5,7 @@ import com.kevinleader.bgr.dto.config.RankingConfigRequestDto;
 import com.kevinleader.bgr.entity.AppUser;
 import com.kevinleader.bgr.entity.RankingConfig;
 import com.kevinleader.bgr.repository.RankingConfigRepository;
+import com.kevinleader.bgr.exception.NotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
@@ -29,7 +30,7 @@ public class RankingConfigService {
 
     public RankingConfigDto getConfig(AppUser user, Long id) {
         RankingConfig config = rankingConfigRepository.findByIdAndUser(id, user)
-                .orElseThrow(() -> new IllegalArgumentException("Ranking config not found"));
+                .orElseThrow(() -> new NotFoundException("Ranking config not found"));
         return toDto(config);
     }
 
@@ -43,7 +44,7 @@ public class RankingConfigService {
 
     public RankingConfigDto updateConfig(AppUser user, Long id, RankingConfigRequestDto request) {
         RankingConfig config = rankingConfigRepository.findByIdAndUser(id, user)
-                .orElseThrow(() -> new IllegalArgumentException("Ranking config not found"));
+                .orElseThrow(() -> new NotFoundException("Ranking config not found"));
 
         if (!config.getName().equals(request.name())
                 && rankingConfigRepository.existsByUserAndName(user, request.name())) {
@@ -65,7 +66,7 @@ public class RankingConfigService {
 
     public void deleteConfig(AppUser user, Long id) {
         RankingConfig config = rankingConfigRepository.findByIdAndUser(id, user)
-                .orElseThrow(() -> new IllegalArgumentException("Ranking config not found"));
+                .orElseThrow(() -> new NotFoundException("Ranking config not found"));
         rankingConfigRepository.delete(config);
     }
 

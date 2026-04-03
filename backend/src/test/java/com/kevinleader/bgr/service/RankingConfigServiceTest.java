@@ -10,6 +10,8 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Optional;
 
+import com.kevinleader.bgr.exception.NotFoundException;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -58,7 +60,7 @@ class RankingConfigServiceTest {
         when(repository.findByIdAndUser(99L, user)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.getConfig(user, 99L))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(NotFoundException.class)
                 .hasMessage("Ranking config not found");
     }
 
@@ -108,7 +110,7 @@ class RankingConfigServiceTest {
         when(repository.findByIdAndUser(99L, user)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.deleteConfig(user, 99L))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(NotFoundException.class)
                 .hasMessage("Ranking config not found");
     }
 }

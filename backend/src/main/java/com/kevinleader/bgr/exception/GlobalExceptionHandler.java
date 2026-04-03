@@ -20,6 +20,11 @@ public class GlobalExceptionHandler {
         return buildError(HttpStatus.BAD_REQUEST, exception.getMessage(), request.getRequestURI());
     }
 
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<ApiErrorDto> handleNotFound(NotFoundException exception, HttpServletRequest request) {
+        return buildError(HttpStatus.NOT_FOUND, exception.getMessage(), request.getRequestURI());
+    }
+
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiErrorDto> handleConflict(HttpServletRequest request) {
         return buildError(HttpStatus.CONFLICT, "A record with that value already exists", request.getRequestURI());

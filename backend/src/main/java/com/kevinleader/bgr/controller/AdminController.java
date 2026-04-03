@@ -1,12 +1,15 @@
 package com.kevinleader.bgr.controller;
 
+import com.kevinleader.bgr.dto.admin.ActiveUpdateRequestDto;
 import com.kevinleader.bgr.dto.admin.AdminUserDto;
 import com.kevinleader.bgr.dto.admin.RoleUpdateRequestDto;
 import com.kevinleader.bgr.job.CacheRefreshJob;
+import com.kevinleader.bgr.security.AppUserPrincipal;
 import com.kevinleader.bgr.service.AdminUserService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -49,13 +52,16 @@ public class AdminController {
     }
 
     @PatchMapping("/users/{id}/active")
-    public AdminUserDto setActive(@PathVariable Long id, @RequestBody boolean active) {
-        return adminUserService.setActive(id, active);
+    public AdminUserDto setActive(@AuthenticationPrincipal AppUserPrincipal principal,
+                                  @PathVariable Long id,
+                                  @RequestBody ActiveUpdateRequestDto request) {
+        return adminUserService.setActive(principal.getUser().getId(), id, request.active());
     }
 
     @PatchMapping("/users/{id}/role")
-    public AdminUserDto setRole(@PathVariable Long id,
+    public AdminUserDto setRole(@AuthenticationPrincipal AppUserPrincipal principal,
+                                @PathVariable Long id,
                                 @Valid @RequestBody RoleUpdateRequestDto request) {
-        return adminUserService.setRole(id, request.role());
+        return adminUserService.setRole(principal.getUser().getId(), id, request.role());
     }
 }

@@ -14,6 +14,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.kevinleader.bgr.exception.NotFoundException;
+
 class AdminUserServiceTest {
 
     private final AppUserRepository repository = mock(AppUserRepository.class);
@@ -43,28 +45,35 @@ class AdminUserServiceTest {
         when(repository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.getUser(99L))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(NotFoundException.class)
                 .hasMessage("User not found");
     }
 
     @Test
     void setActiveUpdatesUser() {
         AppUser user = testUser();
-        when(repository.findById(1L)).thenReturn(Optional.of(user));
+        when(repository.findById(2L)).thenReturn(Optional.of(user));
         when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        AdminUserDto result = service.setActive(1L, false);
+        AdminUserDto result = service.setActive(1L, 2L, false);
 
         assertThat(result.active()).isFalse();
     }
 
     @Test
+    void setActiveRejectsSelf() {
+        assertThatThrownBy(() -> service.setActive(1L, 1L, false))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("own active status");
+    }
+
+    @Test
     void setRolePromotesToAdmin() {
         AppUser user = testUser();
-        when(repository.findById(1L)).thenReturn(Optional.of(user));
+        when(repository.findById(2L)).thenReturn(Optional.of(user));
         when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        AdminUserDto result = service.setRole(1L, "ADMIN");
+        AdminUserDto result = service.setRole(1L, 2L, "ADMIN");
 
         assertThat(result.role()).isEqualTo("ADMIN");
     }
@@ -72,20 +81,27 @@ class AdminUserServiceTest {
     @Test
     void setRoleNormalizesToUppercase() {
         AppUser user = testUser();
-        when(repository.findById(1L)).thenReturn(Optional.of(user));
+        when(repository.findById(2L)).thenReturn(Optional.of(user));
         when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        AdminUserDto result = service.setRole(1L, "admin");
+        AdminUserDto result = service.setRole(1L, 2L, "admin");
 
         assertThat(result.role()).isEqualTo("ADMIN");
     }
 
     @Test
+    void setRoleRejectsSelf() {
+        assertThatThrownBy(() -> service.setRole(1L, 1L, "USER"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("own role");
+    }
+
+    @Test
     void setRoleRejectsInvalidRole() {
         AppUser user = testUser();
-        when(repository.findById(1L)).thenReturn(Optional.of(user));
+        when(repository.findById(2L)).thenReturn(Optional.of(user));
 
-        assertThatThrownBy(() -> service.setRole(1L, "SUPERUSER"))
+        assertThatThrownBy(() -> service.setRole(1L, 2L, "SUPERUSER"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Invalid role");
     }
