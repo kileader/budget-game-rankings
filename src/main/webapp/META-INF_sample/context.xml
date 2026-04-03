@@ -1,8 +1,0 @@
-<Context docBase="BudgetGameRankings" path="/BudgetGameRankings" reloadable="true">
-    <Realm className="org.apache.catalina.realm.JDBCRealm"
-           driverName="com.mysql.cj.jdbc.Driver"
-           connectionURL="jdbc:mysql://localhost:3306/bgr?user=*******&amp;password=*******"
-           userTable="user" userNameCol="user_name" userCredCol="password"
-           userRoleTable="role" roleNameCol="role_name" >
-    </Realm>
-</Context>

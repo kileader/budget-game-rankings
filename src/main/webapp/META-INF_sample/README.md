@@ -1,1 +1,0 @@
-This is a sample of the META-INF directory. No personal info is given.
