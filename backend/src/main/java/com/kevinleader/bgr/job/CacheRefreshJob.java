@@ -46,28 +46,28 @@ public class CacheRefreshJob {
         long jobStart = System.currentTimeMillis();
         log.info("Cache refresh job started at {}", java.time.Instant.now());
         try {
-            log.info("Phase 1/4: IGDB sync");
+            log.info("Step 1/4: IGDB sync");
             try {
                 igdbSyncService.syncAll();
             } catch (Exception e) {
                 log.error("IGDB sync failed -- continuing to next phase", e);
             }
 
-            log.info("Phase 2/4: price estimation sync");
+            log.info("Step 2/4: price estimation sync");
             try {
                 priceEstimationService.estimateAll();
             } catch (Exception e) {
                 log.error("Price estimation sync failed -- continuing to next phase", e);
             }
 
-            log.info("Phase 3/4: CheapShark sync");
+            log.info("Step 3/4: CheapShark sync");
             try {
                 cheapSharkSyncService.syncAll();
             } catch (Exception e) {
                 log.error("CheapShark sync failed -- continuing to next phase", e);
             }
 
-            log.info("Phase 4/4: HLTB sync");
+            log.info("Step 4/4: HLTB sync");
             try {
                 hltbSyncService.syncAll();
             } catch (Exception e) {

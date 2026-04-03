@@ -23,10 +23,13 @@ public class PriceEstimationService {
      * PC platforms (6, 14, 3) are intentionally absent -- CheapShark handles those.
      */
     private static final Map<Integer, Integer> PLATFORM_PRICE_MAP = Map.ofEntries(
-            // Current gen -- $59.99
+            // Current gen -- $69.99 baseline
+            Map.entry(508, 6999),  // Nintendo Switch 2
+            Map.entry(167, 6999),  // PlayStation 5
+            Map.entry(169, 6999),  // Xbox Series X|S
+
+            // Prior current gen / late lifecycle -- $59.99 baseline
             Map.entry(130, 5999),  // Nintendo Switch
-            Map.entry(167, 5999),  // PlayStation 5
-            Map.entry(169, 5999),  // Xbox Series X|S
 
             // Previous gen -- $39.99
             Map.entry(48, 3999),   // PlayStation 4
