@@ -14,7 +14,6 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -138,16 +137,6 @@ class AuthControllerTest {
         assertThat(response.username()).isEqualTo("kevin");
         assertThat(response.email()).isEqualTo("kevin@example.com");
         assertThat(response.role()).isEqualTo("USER");
-    }
-
-    @Test
-    void meRejectsAnonymousRequest() {
-        AuthService authService = mock(AuthService.class);
-        AuthController controller = new AuthController(authService);
-
-        assertThatThrownBy(() -> controller.me(null))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Authentication required");
     }
 
     private MockMvc buildMockMvc(AuthService authService) {

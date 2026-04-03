@@ -36,10 +36,6 @@ public class AuthController {
 
     @GetMapping("/me")
     public CurrentUserDto me(@AuthenticationPrincipal AppUserPrincipal principal) {
-        if (principal == null) {
-            throw new IllegalArgumentException("Authentication required");
-        }
-
         return new CurrentUserDto(
                 principal.getUser().getId(),
                 principal.getUser().getUsername(),

@@ -2,6 +2,7 @@ package com.kevinleader.bgr.exception;
 
 import com.kevinleader.bgr.dto.common.ApiErrorDto;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -17,6 +18,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({IllegalArgumentException.class, MethodArgumentTypeMismatchException.class})
     public ResponseEntity<ApiErrorDto> handleBadRequest(Exception exception, HttpServletRequest request) {
         return buildError(HttpStatus.BAD_REQUEST, exception.getMessage(), request.getRequestURI());
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiErrorDto> handleConflict(HttpServletRequest request) {
+        return buildError(HttpStatus.CONFLICT, "A record with that value already exists", request.getRequestURI());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
