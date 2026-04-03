@@ -2,15 +2,16 @@
 
 ## Active Queue
 
-1. Phase 8: frontend ranking page (public, no auth required).
-3. Phase 9: frontend user features (login/signup, saved ranking configs).
-4. Phase 10: deployment and hardening (Vercel for frontend, Railway already in place for backend).
+1. Phase 9: frontend user features (login/signup, saved ranking configs).
+2. Add backend metadata endpoints (GET /platforms, GET /genres) to enable platform/genre filter UI.
+3. Phase 10: deployment and hardening (Vercel for frontend, Railway already in place for backend).
 
 ## Deferred / Known Gaps
 
 - Wishlist feature deferred — only useful once price alert infrastructure exists.
 - `POST /admin/sync` is synchronous; make async if timeout becomes a problem.
 - Token revocation / immediate effect of deactivation — deferred until there's a reason to add complexity.
+- Platform/genre filter UI blocked on backend metadata endpoints.
 
 ## Usage
 

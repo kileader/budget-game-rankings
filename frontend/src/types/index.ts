@@ -1,43 +1,42 @@
-// --- Game / Ranking ---
+// --- Ranking ---
 
-export type Game = {
-  id: number;
+export type RankingResult = {
+  igdbGameId: number;
   title: string;
   igdbRating: number;
-  hoursToBeat: number | null;
-  price: number | null;
+  hltbHours: number | null;
+  priceCents: number | null;
   valueScore: number | null;
-  platforms: string[];
-  genres: string[];
-  releaseYear: number | null;
-  isFree: boolean;
-  isMultiplayerOnly: boolean;
+  coverImageUrl: string | null;
+  igdbUrl: string | null;
+  cheapsharkDealUrl: string | null;
 };
 
-export type RankedGame = Game & {
-  rank: number;
+export type RankingPage = {
+  offset: number;
+  limit: number;
+  total: number;
+  results: RankingResult[];
 };
 
-export type RankingFilters = {
-  platform?: string;
-  genre?: string;
-  minPrice?: number;
-  maxPrice?: number;
-  minHours?: number;
-  maxHours?: number;
-  releaseYearFrom?: number;
-  releaseYearTo?: number;
-  page?: number;
-  size?: number;
-  sort?: string;
-};
+export type RankingSort =
+  | 'VALUE_SCORE'
+  | 'RATING'
+  | 'PLAYTIME'
+  | 'PRICE'
+  | 'TITLE'
+  | 'RELEASE_DATE';
 
-export type PagedResponse<T> = {
-  content: T[];
-  totalElements: number;
-  totalPages: number;
-  number: number;
-  size: number;
+export type RankingQuery = {
+  releaseYearMin?: number;
+  releaseYearMax?: number;
+  minPriceCents?: number;
+  maxPriceCents?: number;
+  minPlaytimeHours?: number;
+  maxPlaytimeHours?: number;
+  sort?: RankingSort;
+  offset?: number;
+  limit?: number;
 };
 
 // --- Auth ---
@@ -66,16 +65,17 @@ export type UserProfile = {
 };
 
 // --- Ranking Configs ---
+// Note: RankingConfig.filters shape needs verification against backend RankingConfigDto before Phase 9.
 
 export type RankingConfig = {
   id: number;
   name: string;
-  filters: RankingFilters;
+  filters: RankingQuery;
   createdAt: string;
   updatedAt: string;
 };
 
 export type RankingConfigRequest = {
   name: string;
-  filters: RankingFilters;
+  filters: RankingQuery;
 };
