@@ -1,0 +1,7 @@
+[build]
+builder = "nixpacks"
+buildCommand = "cd backend && ./mvnw package -DskipTests"
+
+[deploy]
+startCommand = "java -jar backend/target/bgr-backend-0.0.1-SNAPSHOT.jar"
+restartPolicyType = "on_failure"
