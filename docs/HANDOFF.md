@@ -15,8 +15,8 @@
 
 ## Latest Snapshot
 
-- Date: 2026-04-04
-- Branch: `main`
+- Date: 2026-04-04 (verification pass)
+- Branch: `main`, clean vs `origin/main`
 - Tooling cleanup: removed duplicate `.claude/` files; canonical agent workflow is `AGENTS.md` with root `CLAUDE.md` pointer for Claude Code. Root `/.vscode/` and `/.claude/settings.json` gitignored; `.cursor/rules/00-core-repo.mdc` tracked.
 
 ## Files Recently Relevant
@@ -34,8 +34,8 @@
 
 ## Verification
 
-- `backend/mvnw.cmd test` succeeded on 2026-04-03. 36 tests passing.
-- `frontend/npm run build` passes clean as of 2026-04-03.
+- `backend/mvnw.cmd test` succeeded on 2026-04-04. 36 tests passing.
+- `frontend/npm run build` passes clean as of 2026-04-04.
 
 ## Open Risks / Notes
 
