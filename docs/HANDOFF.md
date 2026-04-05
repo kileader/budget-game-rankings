@@ -15,9 +15,9 @@
 
 ## Latest Snapshot
 
-- Date: 2026-04-04 (verification pass)
+- Date: 2026-04-05
 - Branch: `main`, clean vs `origin/main`
-- Tooling cleanup: removed duplicate `.claude/` files; canonical agent workflow is `AGENTS.md` with root `CLAUDE.md` pointer for Claude Code. Root `/.vscode/` and `/.claude/settings.json` gitignored; `.cursor/rules/00-core-repo.mdc` tracked.
+- Rankings UX (deploy feedback): API errors show Spring `message` only (not raw JSON); failed fetch clears stale table; client-side validation for filter ranges and non-negative years before request (`frontend/src/api/client.ts`, `frontend/src/pages/RankingsPage.tsx`).
 
 ## Files Recently Relevant
 
@@ -35,7 +35,7 @@
 ## Verification
 
 - `backend/mvnw.cmd test` succeeded on 2026-04-04. 36 tests passing.
-- `frontend/npm run build` passes clean as of 2026-04-04.
+- `frontend/npm run build` passes clean as of 2026-04-05.
 
 ## Open Risks / Notes
 

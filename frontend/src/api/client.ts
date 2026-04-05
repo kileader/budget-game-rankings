@@ -10,6 +10,23 @@ export class ApiError extends Error {
   }
 }
 
+/** Prefer Spring-style JSON `{ message: "..." }`; avoid dumping raw JSON in UI. */
+function parseApiErrorMessage(body: string, status: number, statusText: string): string {
+  try {
+    const j = JSON.parse(body) as { message?: unknown };
+    if (typeof j.message === 'string' && j.message.trim().length > 0) {
+      return j.message.trim();
+    }
+  } catch {
+    /* not JSON */
+  }
+  const trimmed = body.trim();
+  if (trimmed.length > 0 && trimmed.length <= 300) {
+    return trimmed;
+  }
+  return `${status} ${statusText}`.trim();
+}
+
 type RequestOptions = {
   method?: string;
   body?: unknown;
@@ -37,7 +54,8 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
   if (!response.ok) {
     const text = await response.text();
-    throw new ApiError(response.status, `${response.status} ${response.statusText}: ${text}`);
+    const message = parseApiErrorMessage(text, response.status, response.statusText);
+    throw new ApiError(response.status, message);
   }
 
   // 204 No Content — all other success responses are assumed to have a JSON body

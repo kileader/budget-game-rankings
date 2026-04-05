@@ -46,7 +46,8 @@ type Action =
   | { type: 'SET_OFFSET'; offset: number }
   | { type: 'FETCH_START' }
   | { type: 'FETCH_SUCCESS'; data: RankingPage }
-  | { type: 'FETCH_ERROR'; error: string };
+  | { type: 'FETCH_ERROR'; error: string }
+  | { type: 'SET_VALIDATION_ERROR'; error: string | null };
 
 const defaultFilters: Filters = {
   releaseYearMin: '',
@@ -93,6 +94,47 @@ function configToFilters(config: RankingConfig): Filters {
   };
 }
 
+/** Block invalid ranges before the API; mirrors backend RankingService checks. */
+function validateFilters(filters: Filters): string | null {
+  const yrMin = filters.releaseYearMin === '' ? undefined : safeInt(filters.releaseYearMin);
+  const yrMax = filters.releaseYearMax === '' ? undefined : safeInt(filters.releaseYearMax);
+  if (yrMin !== undefined && yrMin < 0) {
+    return 'Release year (from) cannot be negative.';
+  }
+  if (yrMax !== undefined && yrMax < 0) {
+    return 'Release year (to) cannot be negative.';
+  }
+  if (yrMin !== undefined && yrMax !== undefined && yrMin > yrMax) {
+    return 'Release year: “from” must be less than or equal to “to”.';
+  }
+
+  const minP = filters.minPriceDollars === '' ? undefined : safeFloat(filters.minPriceDollars);
+  const maxP = filters.maxPriceDollars === '' ? undefined : safeFloat(filters.maxPriceDollars);
+  if (minP !== undefined && minP < 0) {
+    return 'Minimum price cannot be negative.';
+  }
+  if (maxP !== undefined && maxP < 0) {
+    return 'Maximum price cannot be negative.';
+  }
+  if (minP !== undefined && maxP !== undefined && minP > maxP) {
+    return 'Price: minimum must be less than or equal to maximum.';
+  }
+
+  const minH = filters.minPlaytimeHours === '' ? undefined : safeFloat(filters.minPlaytimeHours);
+  const maxH = filters.maxPlaytimeHours === '' ? undefined : safeFloat(filters.maxPlaytimeHours);
+  if (minH !== undefined && minH < 0) {
+    return 'Minimum playtime cannot be negative.';
+  }
+  if (maxH !== undefined && maxH < 0) {
+    return 'Maximum playtime cannot be negative.';
+  }
+  if (minH !== undefined && maxH !== undefined && minH > maxH) {
+    return 'Playtime: minimum must be less than or equal to maximum.';
+  }
+
+  return null;
+}
+
 function filtersToConfigRequest(name: string, filters: Filters) {
   const req: { name: string; releaseYearMin?: number; releaseYearMax?: number; minPriceCents?: number; maxPriceCents?: number; minPlaytimeHours?: number; maxPlaytimeHours?: number } = { name };
   const yrMin = safeInt(filters.releaseYearMin);
@@ -113,7 +155,11 @@ function filtersToConfigRequest(name: string, filters: Filters) {
 function reducer(state: State, action: Action): State {
   switch (action.type) {
     case 'SET_FILTER':
-      return { ...state, filters: { ...state.filters, [action.field]: action.value } };
+      return {
+        ...state,
+        filters: { ...state.filters, [action.field]: action.value },
+        error: null,
+      };
     case 'APPLY_FILTERS':
       return { ...state, offset: 0, appliedQuery: filtersToQuery(state.filters, 0) };
     case 'LOAD_CONFIG': {
@@ -127,7 +173,9 @@ function reducer(state: State, action: Action): State {
     case 'FETCH_SUCCESS':
       return { ...state, loading: false, data: action.data };
     case 'FETCH_ERROR':
-      return { ...state, loading: false, error: action.error };
+      return { ...state, loading: false, error: action.error, data: null };
+    case 'SET_VALIDATION_ERROR':
+      return { ...state, error: action.error };
     default:
       return state;
   }
@@ -302,9 +350,8 @@ export default function RankingsPage() {
       const result = await getRankings(appliedQuery);
       dispatch({ type: 'FETCH_SUCCESS', data: result });
     } catch (e) {
-      const message = e instanceof ApiError
-        ? `Error ${e.status}: ${e.message}`
-        : 'Failed to load rankings.';
+      const message =
+        e instanceof ApiError ? e.message : 'Failed to load rankings.';
       dispatch({ type: 'FETCH_ERROR', error: message });
     }
   }, [appliedQuery]);
@@ -332,7 +379,15 @@ export default function RankingsPage() {
       <FilterBar
         filters={filters}
         onFilterChange={(field, value) => dispatch({ type: 'SET_FILTER', field, value })}
-        onApply={() => dispatch({ type: 'APPLY_FILTERS' })}
+        onApply={() => {
+          const err = validateFilters(filters);
+          if (err) {
+            dispatch({ type: 'SET_VALIDATION_ERROR', error: err });
+            return;
+          }
+          dispatch({ type: 'SET_VALIDATION_ERROR', error: null });
+          dispatch({ type: 'APPLY_FILTERS' });
+        }}
       />
 
       {loading && <p className="status-message" role="status">Loading...</p>}
