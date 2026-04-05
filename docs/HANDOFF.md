@@ -15,9 +15,9 @@
 
 ## Latest Snapshot
 
-- Date: 2026-04-03
+- Date: 2026-04-04
 - Branch: `main`
-- Uncommitted changes in `frontend/`.
+- Tooling cleanup: removed duplicate `.claude/` files; canonical agent workflow is `AGENTS.md` with root `CLAUDE.md` pointer for Claude Code. Root `/.vscode/` and `/.claude/settings.json` gitignored; `.cursor/rules/00-core-repo.mdc` tracked.
 
 ## Files Recently Relevant
 

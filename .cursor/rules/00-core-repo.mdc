@@ -1,0 +1,17 @@
+---
+description: Core working rules for this repo
+alwaysApply: true
+---
+
+This repo has multiple parts. Work carefully and keep changes scoped.
+
+Project working rules:
+
+- map which layer you are touching before editing: frontend, backend, config, or shared contract
+- do not make unrelated changes across layers
+- prefer small vertical slices over broad rewrites
+- when changing API behavior, verify both backend and frontend impact
+- before suggesting commands, inspect the repo and use the project’s real scripts/build files rather than guessing
+- prefer existing naming, structure, and patterns already used in the repo
+- keep diffs reviewable and avoid cosmetic churn
+- when done, summarize exactly what changed, what to test, and any remaining risks

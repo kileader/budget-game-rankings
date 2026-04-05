@@ -1,5 +1,12 @@
 # Decisions
 
+## 2026-04-04
+
+- Agent instructions: **`AGENTS.md` is the single source of truth** for handoff/update rules. Root **`CLAUDE.md`** is a short pointer so Claude Code (and similar) still has a conventional entry file without duplicating content.
+- **`.claude/`** project folder removed from the repo (was duplicate + local permission JSON). Recreate locally if a tool needs it. **`/.claude/settings.json`** is gitignored so local Claude Code permissions never show up as untracked churn.
+- **Root `/.vscode/`** is gitignored so local VS Code settings do not appear as churn; `frontend/.vscode` remains governed by `frontend/.gitignore` (e.g. optional `extensions.json`).
+- **`.cursor/rules/`** is tracked so Cursor rules are shared, not only on one machine.
+
 ## 2026-04-03
 
 - Shared cross-agent project memory lives in repo files, not tool-local chat/session memory.

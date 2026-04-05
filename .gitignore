@@ -1,4 +1,8 @@
 # IDE
+# Root VS Code settings are machine-local; frontend may still use .vscode/ per frontend/.gitignore
+/.vscode/
+# Claude Code local permissions/config — recreate locally; not shared (workflow lives in AGENTS.md / CLAUDE.md)
+/.claude/settings.json
 .idea/
 *.iml
 *.iws
