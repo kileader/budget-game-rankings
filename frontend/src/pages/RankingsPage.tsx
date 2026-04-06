@@ -368,6 +368,29 @@ export default function RankingsPage() {
       <h1>Game Rankings</h1>
       <p className="rankings-subtitle">Ranked by value: rating × playtime ÷ price.</p>
 
+      <section className="about-section" aria-label="How rankings work">
+        <details>
+          <summary>How does the value score work?</summary>
+          <div className="about-body">
+            <p>
+              Each game is scored using: <strong>(IGDB rating × hours to beat) ÷ price</strong>.
+              A game that costs $10, takes 50 hours, and scores 90 on IGDB ranks higher than a $60
+              game that takes 8 hours and scores 95 — because you get more per dollar.
+            </p>
+            <p>
+              Playtime comes from <a href="https://howlongtobeat.com" target="_blank" rel="noreferrer">HowLongToBeat</a>.
+              If no playtime data exists, the genre average is used.
+              Prices come from <a href="https://www.cheapshark.com" target="_blank" rel="noreferrer">CheapShark</a> (lowest current PC price).
+              Ratings come from <a href="https://www.igdb.com" target="_blank" rel="noreferrer">IGDB</a>.
+              Data refreshes nightly.
+            </p>
+            <p className="about-exclusions">
+              Excluded: free/freemium games, multiplayer-only titles, games with fewer than 10 ratings, games with no price data.
+            </p>
+          </div>
+        </details>
+      </section>
+
       {isLoggedIn && token && (
         <SavedConfigs
           token={token}
