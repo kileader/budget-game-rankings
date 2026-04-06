@@ -8,7 +8,7 @@ import com.kevinleader.bgr.security.AppUserPrincipal;
 import com.kevinleader.bgr.service.AuthService;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
@@ -144,7 +144,7 @@ class AuthControllerTest {
         validator.afterPropertiesSet();
         return MockMvcBuilders.standaloneSetup(new AuthController(authService))
                 .setControllerAdvice(new GlobalExceptionHandler())
-                .setMessageConverters(new MappingJackson2HttpMessageConverter())
+                .setMessageConverters(new JacksonJsonHttpMessageConverter())
                 .setValidator(validator)
                 .build();
     }

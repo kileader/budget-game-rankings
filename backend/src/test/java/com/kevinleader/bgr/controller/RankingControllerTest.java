@@ -8,7 +8,7 @@ import com.kevinleader.bgr.exception.GlobalExceptionHandler;
 import com.kevinleader.bgr.service.RankingService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
@@ -134,7 +134,7 @@ class RankingControllerTest {
         validator.afterPropertiesSet();
         return MockMvcBuilders.standaloneSetup(new RankingController(rankingService))
                 .setControllerAdvice(new GlobalExceptionHandler())
-                .setMessageConverters(new MappingJackson2HttpMessageConverter())
+                .setMessageConverters(new JacksonJsonHttpMessageConverter())
                 .setValidator(validator)
                 .build();
     }
