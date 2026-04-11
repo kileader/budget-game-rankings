@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "paper-mcp": {
+      "url": "https://paper.ruixen.app/mcp",
+      "headers": {
+        "Authorization": "Bearer pmcp_TbPr5qx5TWQKQ2XewtkFDbWk69HbJbL8"
+      }
+    }
+  }
+}

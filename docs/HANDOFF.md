@@ -15,9 +15,12 @@
 
 ## Latest Snapshot
 
-- Date: 2026-04-05
-- Branch: `main`, clean vs `origin/main`
-- Rankings UX (deploy feedback): API errors show Spring `message` only (not raw JSON); failed fetch clears stale table; client-side validation for filter ranges and non-negative years before request (`frontend/src/api/client.ts`, `frontend/src/pages/RankingsPage.tsx`).
+- Date: 2026-04-06
+- Branch: `main`
+- Platform/genre multi-select pickers wired end-to-end:
+  - Backend: `V6__create_platform_ref.sql` seeds platform names; `MetadataController` exposes `GET /metadata/platforms` and `GET /metadata/genres`; `SecurityConfig` allows public access.
+  - Frontend: `MetadataItem` type added; `frontend/src/api/metadata.ts` fetches both endpoints on page mount; `Filters` extended with `platformIds[]` / `genreIds[]`; `SET_MULTI_FILTER` reducer action; `MultiSelect` dropdown component with checkboxes and clear button; `FilterBar` renders pickers above numeric range fields; `rankings.ts` serializes ids as repeated `platformIds`/`genreIds` params matching backend `@RequestParam List<Integer>`.
+- TypeScript check passes with zero errors.
 
 ## Files Recently Relevant
 
@@ -43,10 +46,17 @@
 - `listUsers()` has no pagination. Fine at current scale.
 - JWT sessions not invalidated on deactivate/role change. Known tradeoff.
 - Ranking filter/sort is in-memory after cache fetch.
-- Platform/genre filter UI needs backend metadata endpoints before it can be built.
+- Platform/genre pickers show "Loading…" until metadata resolves; errors are silently swallowed (acceptable for metadata).
 - CSS is functional but not polished; all styles are desktop-first (`max-width` queries). Flip to mobile-first (`min-width`) in a styling pass.
 - Token stored in localStorage — acceptable for this app, but XSS-accessible. No plans to change.
 
+## paper-mcp
+
+Project page ID: `jd7fbgc841fk9pt764973gwvax84nxy6`
+Read or post at [paper.ruixen.app](https://paper.ruixen.app) — give this ID to any agent for instant project context.
+
 ## Next Sensible Step
 
+- Deploy and smoke-test the platform/genre pickers against the live backend.
+- Consider sliders for numeric range filters (year, price, playtime) — Oli's feedback.
 - Phase 10: deployment and hardening (Vercel for frontend, Railway already in place for backend).

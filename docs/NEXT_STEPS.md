@@ -2,17 +2,23 @@
 
 ## Active Queue
 
-1. Phase 10: deployment and hardening (Vercel for frontend, Railway already in place for backend).
-2. Add backend metadata endpoints (GET /platforms, GET /genres) to enable platform/genre filter UI.
+1. Phase 10: deploy frontend to Vercel, smoke-test against Railway backend.
+2. Column sort — click-to-sort ascending/descending on Title and numeric columns (was in V1, lost in rework — j00f feedback).
+3. Sliders for numeric range filters — year, price, playtime — Leaf + Oli feedback.
+
+## Planned Features
+
+- Game card grid view — cover art grid as alternative to table; Leaf feedback.
+- Wishlist Watchtower — Kevin's reframe: ranking engine stays as core, wishlist + price alerts become the prominent user-facing angle.
+- Sale sniper / price alerts — CheapShark has a price alert API; pairs with wishlist ("alert me when this hits $X") — Hunziboi feedback.
+- Community tagging — "worth at full price" / "wait for sale", Steam-style — Hunziboi feedback; non-trivial scope (DB, UI, moderation), backlog.
 
 ## Deferred / Known Gaps
 
-- Wishlist feature deferred — only useful once price alert infrastructure exists.
-- Sale sniper / price alerts — CheapShark has a price alert API; pairs naturally with the wishlist ("alert me when this game hits $X"). Build alongside wishlist.
-- Community tagging ("worth at full price", "wait for sale") — user-generated signal on top of the value score. Real feature, non-trivial scope (DB, UI, moderation). Backlog.
+- Mobile-first CSS pass (currently desktop-first).
 - `POST /admin/sync` is synchronous; make async if timeout becomes a problem.
 - Token revocation / immediate effect of deactivation — deferred until there's a reason to add complexity.
-- Platform/genre filter UI blocked on backend metadata endpoints.
+- Token in localStorage — acceptable, known XSS tradeoff, no plans to change.
 
 ## Usage
 

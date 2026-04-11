@@ -1,3 +1,10 @@
+// --- Metadata ---
+
+export type MetadataItem = {
+  id: number;
+  name: string;
+};
+
 // --- Ranking ---
 
 export type RankingResult = {
@@ -28,6 +35,8 @@ export type RankingSort =
   | 'RELEASE_DATE';
 
 export type RankingQuery = {
+  platformIds?: number[];
+  genreIds?: number[];
   releaseYearMin?: number;
   releaseYearMax?: number;
   minPriceCents?: number;
