@@ -186,6 +186,8 @@ public class RankingService {
         );
     }
 
+    private static final BigDecimal PLAYTIME_CAP = BigDecimal.valueOf(200);
+
     private BigDecimal computeValueScore(GameCache game) {
         Integer priceCents = game.getEffectivePriceCents();
         if (priceCents == null || priceCents <= 0) {
@@ -194,8 +196,9 @@ public class RankingService {
 
         BigDecimal priceDollars = BigDecimal.valueOf(priceCents)
                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        BigDecimal cappedHours = game.getHltbHours().min(PLAYTIME_CAP);
         return game.getIgdbRating()
-                .multiply(game.getHltbHours())
+                .multiply(cappedHours)
                 .divide(priceDollars, 4, RoundingMode.HALF_UP);
     }
 }
