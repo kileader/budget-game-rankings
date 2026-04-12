@@ -88,6 +88,7 @@
   flex-direction: column;
   gap: 6px;
   position: relative;
+  flex: 0 0 auto;
 }
 
 .multi-select-trigger {
@@ -179,18 +180,24 @@
 .filter-bar {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
-  align-items: flex-end;
+  gap: 20px;
+  align-items: flex-start;
   padding: 16px;
   border: 1px solid var(--border);
   border-radius: 8px;
   margin-bottom: 24px;
 }
 
+.filter-bar > button[type="submit"] {
+  align-self: flex-end;
+}
+
 .filter-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+  min-width: 220px;
+  flex: 1 1 220px;
 }
 
 .filter-group-label {
@@ -210,8 +217,8 @@
 /* Dual range slider */
 .dual-range {
   position: relative;
-  height: 20px;
-  margin: 4px 0 6px;
+  height: 24px;
+  margin: 2px 0 4px;
 }
 
 .dual-range-track {
@@ -232,6 +239,7 @@
   bottom: 0;
   background: var(--accent);
   border-radius: 2px;
+  opacity: 0.8;
 }
 
 .dual-range-input {
@@ -246,6 +254,17 @@
   appearance: none;
   pointer-events: none;
 
+  /* Hide browser default track */
+  &::-webkit-slider-runnable-track {
+    background: transparent;
+    height: 4px;
+  }
+
+  &::-moz-range-track {
+    background: transparent;
+    height: 4px;
+  }
+
   &::-webkit-slider-thumb {
     appearance: none;
     width: 16px;
@@ -255,7 +274,8 @@
     border: 2px solid var(--bg);
     cursor: pointer;
     pointer-events: auto;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+    margin-top: -6px; /* center thumb on track */
   }
 
   &::-moz-range-thumb {
@@ -266,7 +286,7 @@
     border: 2px solid var(--bg);
     cursor: pointer;
     pointer-events: auto;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
   }
 
   &:focus-visible::-webkit-slider-thumb {

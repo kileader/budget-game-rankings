@@ -17,6 +17,7 @@ export default function SavedConfigs({ token, onLoad, onSave }: Props) {
   const [saveName, setSaveName] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
 
   async function fetchConfigs() {
     try {
@@ -40,9 +41,14 @@ export default function SavedConfigs({ token, onLoad, onSave }: Props) {
     try {
       await onSave(saveName.trim());
       setSaveName('');
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
       await fetchConfigs();
     } catch (err) {
-      setError(err instanceof ApiError ? `Save failed (${err.status})` : 'Save failed.');
+      const msg = err instanceof ApiError
+        ? `Save failed: ${err.message} (${err.status})`
+        : 'Save failed. Check your connection and try again.';
+      setError(msg);
     } finally {
       setSaving(false);
     }
@@ -100,7 +106,7 @@ export default function SavedConfigs({ token, onLoad, onSave }: Props) {
           aria-label="Config name"
         />
         <button type="submit" disabled={saving || !saveName.trim()}>
-          {saving ? 'Saving...' : 'Save current filters'}
+          {saving ? 'Saving...' : saved ? 'Saved ✓' : 'Save current filters'}
         </button>
       </form>
     </section>
