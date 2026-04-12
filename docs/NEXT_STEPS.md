@@ -2,9 +2,11 @@
 
 ## Active Queue
 
-1. Phase 10: deploy frontend to Vercel, smoke-test against Railway backend.
-2. Column sort — click-to-sort ascending/descending on Title and numeric columns (was in V1, lost in rework — j00f feedback).
-3. Sliders for numeric range filters — year, price, playtime — Leaf + Oli feedback.
+1. Investigate HLTB data quality — most games show 50.0 hrs (RPG genre fallback). Trigger sync, read logs, check matched vs fallback ratio. If HLTB is blocking Railway IP or API changed, fix or find alternative.
+2. Game card grid view — cover art cards instead of table; show value score, rating, price, platform tags.
+3. Search by title — backend `title` query param + frontend text input.
+4. Include free/freemium games — adjusted scoring (skip price component).
+5. Include multiplayer-only games — adjusted scoring (skip hours-to-beat component).
 
 ## Planned Features
 

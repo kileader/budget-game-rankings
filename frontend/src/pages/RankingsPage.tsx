@@ -414,14 +414,14 @@ function FilterBar({
       <div className="filter-group">
         <span className="filter-group-label">Release Year</span>
         <DualRangeSlider
-          rangeMin={1980} rangeMax={2025} step={1}
+          rangeMin={1980} rangeMax={new Date().getFullYear()} step={1}
           valueMin={filters.releaseYearMin} valueMax={filters.releaseYearMax}
           onChangeMin={v => onFilterChange('releaseYearMin', v)}
           onChangeMax={v => onFilterChange('releaseYearMax', v)}
         />
         <div className="filter-group-inputs">
           {field('From', 'releaseYearMin', '1980')}
-          {field('To', 'releaseYearMax', '2025')}
+          {field('To', 'releaseYearMax', String(new Date().getFullYear()))}
         </div>
       </div>
       <div className="filter-group">
@@ -489,6 +489,8 @@ function SortableHeader({
   );
 }
 
+type ViewMode = 'grid' | 'table';
+
 function ResultRow({ result, rank }: { result: RankingResult; rank: number }) {
   return (
     <tr>
@@ -521,6 +523,47 @@ function ResultRow({ result, rank }: { result: RankingResult; rank: number }) {
       </td>
       <td>{formatNumber(result.valueScore, 2)}</td>
     </tr>
+  );
+}
+
+function GameCard({ result, rank }: { result: RankingResult; rank: number }) {
+  return (
+    <article className="game-card">
+      <div className="game-card-cover">
+        <span className="game-card-rank">#{rank}</span>
+        {result.coverImageUrl ? (
+          <img src={result.coverImageUrl} alt="" loading="lazy" />
+        ) : (
+          <div className="game-card-no-cover" />
+        )}
+      </div>
+      <div className="game-card-body">
+        <h3 className="game-card-title">
+          {result.igdbUrl ? (
+            <a href={result.igdbUrl} target="_blank" rel="noreferrer">{result.title}</a>
+          ) : (
+            result.title
+          )}
+        </h3>
+        <div className="game-card-score">{formatNumber(result.valueScore, 2)}</div>
+        <div className="game-card-label">Value Score</div>
+        <div className="game-card-stats">
+          <span title="IGDB Rating">⭐ {formatNumber(result.igdbRating)}</span>
+          <span title="Price">
+            {result.cheapsharkDealUrl ? (
+              <a href={result.cheapsharkDealUrl} target="_blank" rel="noreferrer">
+                {formatPrice(result.priceCents)}
+              </a>
+            ) : (
+              formatPrice(result.priceCents)
+            )}
+          </span>
+          <span title="Playtime">
+            {result.hltbHours !== null ? `${formatNumber(result.hltbHours)}h` : '—'}
+          </span>
+        </div>
+      </div>
+    </article>
   );
 }
 
@@ -567,6 +610,7 @@ export default function RankingsPage() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const { filters, appliedQuery, offset, data, loading, error } = state;
 
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [platforms, setPlatforms] = useState<MetadataItem[] | null>(null);
   const [genres, setGenres] = useState<MetadataItem[] | null>(null);
 
@@ -652,27 +696,53 @@ export default function RankingsPage() {
 
       {data && !loading && (
         <>
-          <p className="result-count" aria-live="polite">{data.total} games</p>
-          <div className="table-wrapper">
-            <table className="rankings-table">
-              <thead>
-                <tr>
-                  <th scope="col">#</th>
-                  <th scope="col">Cover</th>
-                  <SortableHeader label="Title" sortKey="TITLE" currentSort={filters.sort} currentDir={filters.sortDir} onSort={(s, d) => dispatch({ type: 'SET_SORT', sort: s, dir: d })} />
-                  <SortableHeader label="Rating" sortKey="RATING" currentSort={filters.sort} currentDir={filters.sortDir} onSort={(s, d) => dispatch({ type: 'SET_SORT', sort: s, dir: d })} />
-                  <SortableHeader label="Playtime" sortKey="PLAYTIME" currentSort={filters.sort} currentDir={filters.sortDir} onSort={(s, d) => dispatch({ type: 'SET_SORT', sort: s, dir: d })} />
-                  <SortableHeader label="Price" sortKey="PRICE" currentSort={filters.sort} currentDir={filters.sortDir} onSort={(s, d) => dispatch({ type: 'SET_SORT', sort: s, dir: d })} />
-                  <SortableHeader label="Value Score" sortKey="VALUE_SCORE" currentSort={filters.sort} currentDir={filters.sortDir} onSort={(s, d) => dispatch({ type: 'SET_SORT', sort: s, dir: d })} />
-                </tr>
-              </thead>
-              <tbody>
-                {data.results.map((result, i) => (
-                  <ResultRow key={result.igdbGameId} result={result} rank={offset + i + 1} />
-                ))}
-              </tbody>
-            </table>
+          <div className="results-toolbar">
+            <p className="result-count" aria-live="polite">{data.total} games</p>
+            <div className="view-toggle" role="radiogroup" aria-label="View mode">
+              <button
+                className={viewMode === 'grid' ? 'active' : ''}
+                onClick={() => setViewMode('grid')}
+                aria-pressed={viewMode === 'grid'}
+                title="Grid view"
+              >▦</button>
+              <button
+                className={viewMode === 'table' ? 'active' : ''}
+                onClick={() => setViewMode('table')}
+                aria-pressed={viewMode === 'table'}
+                title="Table view"
+              >☰</button>
+            </div>
           </div>
+
+          {viewMode === 'grid' ? (
+            <div className="game-grid">
+              {data.results.map((result, i) => (
+                <GameCard key={result.igdbGameId} result={result} rank={offset + i + 1} />
+              ))}
+            </div>
+          ) : (
+            <div className="table-wrapper">
+              <table className="rankings-table">
+                <thead>
+                  <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Cover</th>
+                    <SortableHeader label="Title" sortKey="TITLE" currentSort={filters.sort} currentDir={filters.sortDir} onSort={(s, d) => dispatch({ type: 'SET_SORT', sort: s, dir: d })} />
+                    <SortableHeader label="Rating" sortKey="RATING" currentSort={filters.sort} currentDir={filters.sortDir} onSort={(s, d) => dispatch({ type: 'SET_SORT', sort: s, dir: d })} />
+                    <SortableHeader label="Playtime" sortKey="PLAYTIME" currentSort={filters.sort} currentDir={filters.sortDir} onSort={(s, d) => dispatch({ type: 'SET_SORT', sort: s, dir: d })} />
+                    <SortableHeader label="Price" sortKey="PRICE" currentSort={filters.sort} currentDir={filters.sortDir} onSort={(s, d) => dispatch({ type: 'SET_SORT', sort: s, dir: d })} />
+                    <SortableHeader label="Value Score" sortKey="VALUE_SCORE" currentSort={filters.sort} currentDir={filters.sortDir} onSort={(s, d) => dispatch({ type: 'SET_SORT', sort: s, dir: d })} />
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.results.map((result, i) => (
+                    <ResultRow key={result.igdbGameId} result={result} rank={offset + i + 1} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
           <Pagination
             offset={offset}
             limit={PAGE_LIMIT}

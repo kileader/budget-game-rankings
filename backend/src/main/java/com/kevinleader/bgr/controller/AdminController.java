@@ -6,6 +6,7 @@ import com.kevinleader.bgr.dto.admin.RoleUpdateRequestDto;
 import com.kevinleader.bgr.job.CacheRefreshJob;
 import com.kevinleader.bgr.security.AppUserPrincipal;
 import com.kevinleader.bgr.service.AdminUserService;
+import com.kevinleader.bgr.service.HltbSyncService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,10 +27,13 @@ public class AdminController {
 
     private final CacheRefreshJob cacheRefreshJob;
     private final AdminUserService adminUserService;
+    private final HltbSyncService hltbSyncService;
 
-    public AdminController(CacheRefreshJob cacheRefreshJob, AdminUserService adminUserService) {
+    public AdminController(CacheRefreshJob cacheRefreshJob, AdminUserService adminUserService,
+                           HltbSyncService hltbSyncService) {
         this.cacheRefreshJob = cacheRefreshJob;
         this.adminUserService = adminUserService;
+        this.hltbSyncService = hltbSyncService;
     }
 
     @PostMapping("/sync")
@@ -39,6 +43,16 @@ public class AdminController {
         }
         cacheRefreshJob.runCacheRefresh();
         return ResponseEntity.ok("Cache refresh completed");
+    }
+
+    @PostMapping("/hltb-resync")
+    public ResponseEntity<String> triggerHltbResync() {
+        if (cacheRefreshJob.isRunning()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Cache refresh already in progress");
+        }
+        int cleared = hltbSyncService.resetAll();
+        hltbSyncService.syncAll();
+        return ResponseEntity.ok("HLTB resync completed for " + cleared + " games");
     }
 
     @GetMapping("/users")

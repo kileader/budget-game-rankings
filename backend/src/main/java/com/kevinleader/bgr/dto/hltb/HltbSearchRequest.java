@@ -1,9 +1,12 @@
 package com.kevinleader.bgr.dto.hltb;
 
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class HltbSearchRequest {
@@ -18,14 +21,29 @@ public class HltbSearchRequest {
     private int searchPage = 1;
 
     @JsonProperty("size")
-    private int size = 5;
+    private int size = 20;
 
     @JsonProperty("searchOptions")
     private SearchOptions searchOptions = new SearchOptions();
 
+    @JsonProperty("useCache")
+    private boolean useCache = true;
+
+    private final Map<String, Object> extra = new HashMap<>();
+
     public HltbSearchRequest(List<String> searchTerms) {
         this.searchTerms = searchTerms;
     }
+
+    /** Inject the honeypot key-value pair into the serialized JSON body. */
+    public void setHoneypot(String key, String value) {
+        if (key != null && value != null) {
+            extra.put(key, value);
+        }
+    }
+
+    @JsonAnyGetter
+    public Map<String, Object> getExtra() { return extra; }
 
     public String getSearchType() { return searchType; }
     public List<String> getSearchTerms() { return searchTerms; }

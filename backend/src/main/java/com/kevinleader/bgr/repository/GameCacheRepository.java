@@ -2,8 +2,10 @@ package com.kevinleader.bgr.repository;
 
 import com.kevinleader.bgr.entity.GameCache;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -14,6 +16,11 @@ public interface GameCacheRepository extends JpaRepository<GameCache, Long> {
 
     @Query("SELECT g FROM GameCache g WHERE g.lastHltbSync IS NULL")
     List<GameCache> findAllNeedingHltbSync();
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE GameCache g SET g.lastHltbSync = NULL")
+    int clearAllHltbSync();
 
     @Query("""
             SELECT g

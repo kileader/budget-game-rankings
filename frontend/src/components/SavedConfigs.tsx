@@ -24,7 +24,7 @@ export default function SavedConfigs({ token, onLoad, onSave }: Props) {
       const list = await listConfigs(token);
       setConfigs(list);
     } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
+      if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
         logout();
       }
       // Otherwise non-critical — user can still use the page without saved configs
@@ -59,7 +59,7 @@ export default function SavedConfigs({ token, onLoad, onSave }: Props) {
       await deleteConfig(id, token);
       setConfigs(prev => prev.filter(c => c.id !== id));
     } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
+      if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
         logout();
       } else {
         setError('Delete failed.');

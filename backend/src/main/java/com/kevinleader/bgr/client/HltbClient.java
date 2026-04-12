@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+
 import java.util.Arrays;
 import java.util.List;
 
@@ -23,8 +24,8 @@ public class HltbClient {
     private final RestClient hltbRestClient;
     private final long requestDelayMs;
 
-    private String cachedToken;
-    private long tokenFetchedAt;
+    private HltbTokenResponse cachedInit;
+    private long initFetchedAt;
 
     public HltbClient(@Qualifier("hltbRestClient") RestClient hltbRestClient,
                       @Value("${hltb.request-delay-ms}") long requestDelayMs) {
@@ -33,65 +34,67 @@ public class HltbClient {
     }
 
     /**
-     * Returns a valid session token, fetching a new one if the cached token has expired.
-     * Synchronized to prevent concurrent token refreshes.
+     * Fetches the init payload (token + honeypot key/value) from /api/find/init.
+     * Caches for 1 hour.
      */
-    public synchronized String getToken() {
+    public synchronized HltbTokenResponse getInit() {
         long now = System.currentTimeMillis();
-        if (cachedToken != null && (now - tokenFetchedAt) < TOKEN_TTL_MS) {
-            return cachedToken;
+        if (cachedInit != null && (now - initFetchedAt) < TOKEN_TTL_MS) {
+            return cachedInit;
         }
 
         try {
             HltbTokenResponse response = hltbRestClient.get()
-                    .uri("/api/finder/init?t={ts}", now)
+                    .uri("/api/find/init?t={ts}", now)
                     .retrieve()
                     .body(HltbTokenResponse.class);
 
             if (response == null || response.token() == null || response.token().isBlank()) {
-                log.warn("HLTB token response was empty or missing token field");
+                log.warn("HLTB init response was empty or missing token field");
                 return null;
             }
 
-            cachedToken = response.token();
-            tokenFetchedAt = now;
-            log.debug("Fetched new HLTB token");
-            return cachedToken;
+            cachedInit = response;
+            initFetchedAt = now;
+            log.debug("Fetched HLTB init: token={}, hpKey={}", response.token(), response.hpKey());
+            return cachedInit;
 
         } catch (RestClientException e) {
-            log.warn("Failed to fetch HLTB token: {}", e.getMessage());
+            log.warn("Failed to fetch HLTB init: {}", e.getMessage());
             return null;
         }
     }
 
     /**
-     * Searches HLTB for a game by title.
-     * Splits the title on whitespace to build the searchTerms array.
+     * Searches HLTB for a game by title via POST /api/find.
+     * Sends the token and honeypot headers extracted from /api/find/init.
      * Applies a rate-limiting delay after each call.
-     *
-     * @param title the game title to search for
-     * @return the search response, or {@code null} if the token is unavailable or the request fails
      */
     public HltbSearchResponse search(String title) {
-        String token = getToken();
-        if (token == null) {
-            log.warn("Skipping HLTB search for '{}': no valid token", title);
+        HltbTokenResponse init = getInit();
+        if (init == null) {
+            log.warn("Skipping HLTB search for '{}': no valid init", title);
             return null;
         }
 
         List<String> terms = Arrays.asList(title.split("\\s+"));
         HltbSearchRequest body = new HltbSearchRequest(terms);
+        body.setHoneypot(init.hpKey(), init.hpVal());
 
         try {
-            HltbSearchResponse response = hltbRestClient.post()
-                    .uri("/api/finder")
-                    .header("x-auth-token", token)
+            RestClient.RequestBodySpec req = hltbRestClient.post()
+                    .uri("/api/find")
                     .header("Content-Type", "application/json")
-                    .body(body)
+                    .header("x-auth-token", init.token());
+
+            if (init.hpKey() != null && init.hpVal() != null) {
+                req = req.header("x-hp-key", init.hpKey())
+                         .header("x-hp-val", init.hpVal());
+            }
+
+            return req.body(body)
                     .retrieve()
                     .body(HltbSearchResponse.class);
-
-            return response;
 
         } catch (RestClientException e) {
             log.warn("HLTB search failed for title='{}': {}", title, e.getMessage());

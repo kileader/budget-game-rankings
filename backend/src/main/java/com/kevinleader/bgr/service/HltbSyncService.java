@@ -35,6 +35,13 @@ public class HltbSyncService {
         this.genreHltbFallbackRepository = genreHltbFallbackRepository;
     }
 
+    /**
+     * Clears lastHltbSync for all games so the next syncAll() re-fetches everything.
+     */
+    public int resetAll() {
+        return gameCacheRepository.clearAllHltbSync();
+    }
+
     public void syncAll() {
         List<GameCache> games = gameCacheRepository.findAllNeedingHltbSync();
         log.info("Starting HLTB sync for {} games", games.size());
