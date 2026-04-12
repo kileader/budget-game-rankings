@@ -536,30 +536,31 @@ function GameCard({ result, rank }: { result: RankingResult; rank: number }) {
         ) : (
           <div className="game-card-no-cover" />
         )}
-        <div className="game-card-overlay">
-          <h3 className="game-card-title">
-            {result.igdbUrl ? (
-              <a href={result.igdbUrl} target="_blank" rel="noreferrer">{result.title}</a>
+      </div>
+      <div className="game-card-body">
+        <h3 className="game-card-title">
+          {result.igdbUrl ? (
+            <a href={result.igdbUrl} target="_blank" rel="noreferrer">{result.title}</a>
+          ) : (
+            result.title
+          )}
+        </h3>
+        <div className="game-card-score">{formatNumber(result.valueScore, 2)}</div>
+        <div className="game-card-label">Value Score</div>
+        <div className="game-card-stats">
+          <span title="IGDB Rating">⭐ {formatNumber(result.igdbRating)}</span>
+          <span title="Price">
+            {result.cheapsharkDealUrl ? (
+              <a href={result.cheapsharkDealUrl} target="_blank" rel="noreferrer">
+                {formatPrice(result.priceCents)}
+              </a>
             ) : (
-              result.title
+              formatPrice(result.priceCents)
             )}
-          </h3>
-          <div className="game-card-score">{formatNumber(result.valueScore, 2)}</div>
-          <div className="game-card-stats">
-            <span title="IGDB Rating">⭐ {formatNumber(result.igdbRating)}</span>
-            <span title="Price">
-              {result.cheapsharkDealUrl ? (
-                <a href={result.cheapsharkDealUrl} target="_blank" rel="noreferrer">
-                  {formatPrice(result.priceCents)}
-                </a>
-              ) : (
-                formatPrice(result.priceCents)
-              )}
-            </span>
-            <span title="Playtime">
-              {result.hltbHours !== null ? `${formatNumber(result.hltbHours)}h` : '—'}
-            </span>
-          </div>
+          </span>
+          <span title="Playtime">
+            {result.hltbHours !== null ? `${formatNumber(result.hltbHours)}h` : '—'}
+          </span>
         </div>
       </div>
     </article>
