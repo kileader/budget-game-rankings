@@ -59,7 +59,7 @@ type Action =
 const defaultFilters: Filters = {
   platformIds: [],
   genreIds: [],
-  releaseYearMin: '',
+  releaseYearMin: '2000',
   releaseYearMax: '',
   minPriceDollars: '',
   maxPriceDollars: '',
@@ -216,7 +216,7 @@ function reducer(state: State, action: Action): State {
 
 const initialState: State = {
   filters: defaultFilters,
-  appliedQuery: { sort: 'VALUE_SCORE', offset: 0, limit: PAGE_LIMIT },
+  appliedQuery: filtersToQuery(defaultFilters, 0),
   offset: 0,
   data: null,
   loading: false,
@@ -536,15 +536,17 @@ function GameCard({ result, rank }: { result: RankingResult; rank: number }) {
         ) : (
           <div className="game-card-no-cover" />
         )}
+        <div className="game-card-overlay">
+          <h3 className="game-card-title">
+            {result.igdbUrl ? (
+              <a href={result.igdbUrl} target="_blank" rel="noreferrer">{result.title}</a>
+            ) : (
+              result.title
+            )}
+          </h3>
+        </div>
       </div>
       <div className="game-card-body">
-        <h3 className="game-card-title">
-          {result.igdbUrl ? (
-            <a href={result.igdbUrl} target="_blank" rel="noreferrer">{result.title}</a>
-          ) : (
-            result.title
-          )}
-        </h3>
         <div className="game-card-score">{formatNumber(result.valueScore, 2)}</div>
         <div className="game-card-label">Value Score</div>
         <div className="game-card-stats">

@@ -52,7 +52,7 @@ public interface GameCacheRepository extends JpaRepository<GameCache, Long> {
                   AND (g.cheapshark_price_cents IS NOT NULL OR g.estimated_price_cents IS NOT NULL)
                   AND p.igdb_platform_id = ANY(g.platform_ids)
             )
-            ORDER BY p.name
+            ORDER BY p.sort_order
             """, nativeQuery = true)
     List<Object[]> findRankablePlatforms();
 
