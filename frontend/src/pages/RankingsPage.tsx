@@ -544,25 +544,22 @@ function GameCard({ result, rank }: { result: RankingResult; rank: number }) {
               result.title
             )}
           </h3>
-        </div>
-      </div>
-      <div className="game-card-body">
-        <div className="game-card-score">{formatNumber(result.valueScore, 2)}</div>
-        <div className="game-card-label">Value Score</div>
-        <div className="game-card-stats">
-          <span title="IGDB Rating">⭐ {formatNumber(result.igdbRating)}</span>
-          <span title="Price">
-            {result.cheapsharkDealUrl ? (
-              <a href={result.cheapsharkDealUrl} target="_blank" rel="noreferrer">
-                {formatPrice(result.priceCents)}
-              </a>
-            ) : (
-              formatPrice(result.priceCents)
-            )}
-          </span>
-          <span title="Playtime">
-            {result.hltbHours !== null ? `${formatNumber(result.hltbHours)}h` : '—'}
-          </span>
+          <div className="game-card-score">{formatNumber(result.valueScore, 2)}</div>
+          <div className="game-card-stats">
+            <span title="IGDB Rating">⭐ {formatNumber(result.igdbRating)}</span>
+            <span title="Price">
+              {result.cheapsharkDealUrl ? (
+                <a href={result.cheapsharkDealUrl} target="_blank" rel="noreferrer">
+                  {formatPrice(result.priceCents)}
+                </a>
+              ) : (
+                formatPrice(result.priceCents)
+              )}
+            </span>
+            <span title="Playtime">
+              {result.hltbHours !== null ? `${formatNumber(result.hltbHours)}h` : '—'}
+            </span>
+          </div>
         </div>
       </div>
     </article>
