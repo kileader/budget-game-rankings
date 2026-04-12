@@ -302,6 +302,67 @@ function MultiSelect({
   );
 }
 
+function DualRangeSlider({
+  rangeMin,
+  rangeMax,
+  step,
+  valueMin,
+  valueMax,
+  onChangeMin,
+  onChangeMax,
+}: {
+  rangeMin: number;
+  rangeMax: number;
+  step: number;
+  valueMin: string;
+  valueMax: string;
+  onChangeMin: (v: string) => void;
+  onChangeMax: (v: string) => void;
+}) {
+  const lo = valueMin === '' ? rangeMin : Math.max(rangeMin, Math.min(rangeMax, Number(valueMin)));
+  const hi = valueMax === '' ? rangeMax : Math.max(rangeMin, Math.min(rangeMax, Number(valueMax)));
+  const span = rangeMax - rangeMin;
+  const loPercent = ((lo - rangeMin) / span) * 100;
+  const hiPercent = ((hi - rangeMin) / span) * 100;
+
+  return (
+    <div className="dual-range" aria-hidden>
+      <div className="dual-range-track">
+        <div
+          className="dual-range-fill"
+          style={{ left: `${loPercent}%`, right: `${100 - hiPercent}%` }}
+        />
+      </div>
+      <input
+        type="range"
+        className="dual-range-input"
+        min={rangeMin}
+        max={rangeMax}
+        step={step}
+        value={lo}
+        style={{ zIndex: lo > rangeMin + span * 0.9 ? 5 : 3 }}
+        onChange={e => {
+          const v = Number(e.target.value);
+          onChangeMin(v <= rangeMin ? '' : String(v));
+        }}
+      />
+      <input
+        type="range"
+        className="dual-range-input"
+        min={rangeMin}
+        max={rangeMax}
+        step={step}
+        value={hi}
+        style={{ zIndex: 4 }}
+        onChange={e => {
+          const v = Number(e.target.value);
+          onChangeMax(v >= rangeMax ? '' : String(v));
+        }}
+      />
+    </div>
+  );
+}
+
 function FilterBar({
   filters,
   platforms,
@@ -317,13 +378,13 @@ function FilterBar({
   onMultiFilterChange: (field: 'platformIds' | 'genreIds', ids: number[]) => void;
   onApply: () => void;
 }) {
-  function field(label: string, key: keyof Omit<Filters, 'platformIds' | 'genreIds' | 'sort' | 'sortDir'>, placeholder: string, type = 'number') {
+  function field(label: string, key: keyof Omit<Filters, 'platformIds' | 'genreIds' | 'sort' | 'sortDir'>, placeholder: string) {
     return (
       <div className="filter-field">
         <label htmlFor={`filter-${key}`}>{label}</label>
         <input
           id={`filter-${key}`}
-          type={type}
+          type="number"
           placeholder={placeholder}
           value={filters[key] as string}
           onChange={e => onFilterChange(key, e.target.value)}
@@ -352,18 +413,42 @@ function FilterBar({
       />
       <div className="filter-group">
         <span className="filter-group-label">Release Year</span>
-        {field('From', 'releaseYearMin', 'e.g. 2010')}
-        {field('To', 'releaseYearMax', 'e.g. 2024')}
+        <DualRangeSlider
+          rangeMin={1980} rangeMax={2025} step={1}
+          valueMin={filters.releaseYearMin} valueMax={filters.releaseYearMax}
+          onChangeMin={v => onFilterChange('releaseYearMin', v)}
+          onChangeMax={v => onFilterChange('releaseYearMax', v)}
+        />
+        <div className="filter-group-inputs">
+          {field('From', 'releaseYearMin', '1980')}
+          {field('To', 'releaseYearMax', '2025')}
+        </div>
       </div>
       <div className="filter-group">
-        <span className="filter-group-label">Price</span>
-        {field('Min ($)', 'minPriceDollars', 'e.g. 5')}
-        {field('Max ($)', 'maxPriceDollars', 'e.g. 60')}
+        <span className="filter-group-label">Price ($)</span>
+        <DualRangeSlider
+          rangeMin={0} rangeMax={100} step={1}
+          valueMin={filters.minPriceDollars} valueMax={filters.maxPriceDollars}
+          onChangeMin={v => onFilterChange('minPriceDollars', v)}
+          onChangeMax={v => onFilterChange('maxPriceDollars', v)}
+        />
+        <div className="filter-group-inputs">
+          {field('Min', 'minPriceDollars', '0')}
+          {field('Max', 'maxPriceDollars', '100')}
+        </div>
       </div>
       <div className="filter-group">
         <span className="filter-group-label">Playtime (hrs)</span>
-        {field('Min', 'minPlaytimeHours', 'e.g. 10')}
-        {field('Max', 'maxPlaytimeHours', 'e.g. 100')}
+        <DualRangeSlider
+          rangeMin={0} rangeMax={200} step={5}
+          valueMin={filters.minPlaytimeHours} valueMax={filters.maxPlaytimeHours}
+          onChangeMin={v => onFilterChange('minPlaytimeHours', v)}
+          onChangeMax={v => onFilterChange('maxPlaytimeHours', v)}
+        />
+        <div className="filter-group-inputs">
+          {field('Min', 'minPlaytimeHours', '0')}
+          {field('Max', 'maxPlaytimeHours', '200')}
+        </div>
       </div>
       <button type="submit">Apply</button>
     </form>
