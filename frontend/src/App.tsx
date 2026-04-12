@@ -1,7 +1,18 @@
 import { Outlet } from 'react-router-dom'
 import Nav from './components/Nav'
+import OnboardingModal from './components/OnboardingModal'
+import { useOnboarding } from './context/OnboardingContext'
+import { useAuth } from './context/AuthContext'
+import type { OnboardingPrefs } from './types'
 
 export default function App() {
+  const { showModal, prefs, closeModal, setPrefs } = useOnboarding();
+  const { token } = useAuth();
+
+  function handleOnboardingComplete(p: OnboardingPrefs) {
+    setPrefs(p, token ?? undefined);
+  }
+
   return (
     <>
       <header>
@@ -10,6 +21,13 @@ export default function App() {
       <main>
         <Outlet />
       </main>
+      {showModal && (
+        <OnboardingModal
+          initial={prefs}
+          onComplete={handleOnboardingComplete}
+          onClose={closeModal}
+        />
+      )}
     </>
   )
 }

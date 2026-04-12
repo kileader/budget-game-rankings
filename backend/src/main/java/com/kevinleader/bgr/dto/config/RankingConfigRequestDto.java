@@ -18,6 +18,9 @@ public record RankingConfigRequestDto(
         Integer minPriceCents,
         Integer maxPriceCents,
         BigDecimal minPlaytimeHours,
-        BigDecimal maxPlaytimeHours
+        BigDecimal maxPlaytimeHours,
+        BigDecimal ratingWeight,
+        BigDecimal playtimeWeight,
+        BigDecimal priceWeight
 ) {
 }

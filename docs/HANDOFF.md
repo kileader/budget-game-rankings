@@ -15,35 +15,43 @@
 
 ## Latest Snapshot
 
-- Date: 2026-04-06
+- Date: 2026-04-12
 - Branch: `main`
-- Platform/genre multi-select pickers wired end-to-end (backend MetadataController + frontend MultiSelect).
-- Dual-range sliders for year, price, playtime filters (replaced plain number inputs).
-- Click-to-sort column headers with ASC/DESC toggle (backend `SortDirection` enum, frontend `SortableHeader` component). Sort dropdown removed.
-- Save config fix: 403 now triggers logout (stale JWT); success shows "Saved ✓" flash.
-- Release year max defaults to `new Date().getFullYear()`.
-- Frontend deployed to Vercel, backend on Railway.
+- HLTB client fixed: endpoint changed from `/api/finder` → `/api/find`; HLTB now requires honeypot headers/body (`hpKey`/`hpVal`) from `/api/find/init`. Client auto-refreshes token on 403. Full resync running via `POST /admin/hltb-resync` (10,642 games, ~91% match rate verified).
+- Value score caps playtime at 200 hrs to prevent live-service games (e.g. War Thunder at 832 hrs) dominating rankings.
+- Game card grid view added as default; table view still available via toggle. Cards show cover art, value score, rating, price, rank badge.
+- Default year filter set to 2000 (from `defaultFilters` and `initialState`).
+- Platforms sorted by era via `sort_order` column (V7 migration). Modern platforms (PC, PS5, Switch, etc.) at top.
+- `POST /admin/hltb-resync` admin endpoint added — clears all `lastHltbSync` and re-runs HLTB sync.
+- **Onboarding modal** (V8): 4-step first-visit wizard — platform picker (searchable, grouped), year range preset, free-to-play toggle, multiplayer-only toggle. Persists to `localStorage` key `bgr_onboarding`. `OnboardingContext` manages open/close state and exposes `prefs` app-wide. "My Setup" button in Nav reopens wizard. RankingsPage pre-populates filters from prefs on load and re-applies on update. For logged-in users, completing the wizard upserts a saved config named "My Setup".
+- **Search by title**: `?title=` query param on `GET /rankings` (case-insensitive substring). Frontend text input in FilterBar.
+- **V8 migration**: adds Nintendo Switch 2 (612), iOS (39), Android (34), Meta Quest (385), PSVR2 (390), PC VR (163), PlayStation VR (165) to `platform_ref`.
+- **MultiSelect extracted** to `components/MultiSelect.tsx` with searchable + grouped props.
+- **Scoring weights + free/multiplayer inclusion** (V9): power-law formula `rating^rW * playtime^pW / price^prW` with user-adjustable weights (0.0–2.0). Free games use $1.00 nominal price when included. Multiplayer-only games use existing playtime data. Weight sliders live in a collapsed "Advanced Scoring" section in FilterBar. Include checkboxes in main filter bar. Weights stored in `ranking_config` table and `RankingConfig` DTO. Backend: `findAllScorable()` broader query when either include flag is set; `matchesFilters` handles free/multiplayer exclusion. 43 tests passing.
 
 ## Files Recently Relevant
 
-- `frontend/src/pages/RankingsPage.tsx` — filters, sort headers, dual-range sliders, MultiSelect
-- `frontend/src/pages/RankingsPage.css` — filter bar layout, slider and multi-select styles
-- `frontend/src/components/SavedConfigs.tsx` — save/delete error handling, 403 logout
-- `frontend/src/api/rankings.ts` — serializes platformIds/genreIds/sortDirection
-- `frontend/src/api/metadata.ts` — fetches platforms and genres
-- `frontend/src/types/index.ts` — MetadataItem, SortDirection, extended RankingQuery
-- `backend/.../dto/ranking/SortDirection.java` — ASC/DESC enum
-- `backend/.../controller/RankingController.java` — accepts sortDirection param
-- `backend/.../service/RankingService.java` — buildComparator uses SortDirection
-- `backend/.../service/HltbSyncService.java` — HLTB sync + genre fallback logic
-- `backend/.../client/HltbClient.java` — HLTB token + search client
-- `backend/.../dto/hltb/HltbGameResult.java` — comp_main / comp_plus fields
-- `backend/src/main/resources/db/migration/V5__create_genre_hltb_fallback.sql` — genre avg_hours seed
+- `frontend/src/components/OnboardingModal.tsx` + `.css` — 4-step wizard, localStorage helpers
+- `frontend/src/context/OnboardingContext.tsx` — prefs state, modal open/close, upsertMySetup
+- `frontend/src/components/MultiSelect.tsx` + `.css` — extracted, searchable, grouped
+- `frontend/src/components/Nav.tsx` + `Nav.css` — "My Setup" button
+- `frontend/src/pages/RankingsPage.tsx` — onboarding prefs wired into initial state + APPLY_ONBOARDING, title filter, SET_TITLE
+- `frontend/src/api/rankingConfigs.ts` — added updateConfig
+- `frontend/src/types/index.ts` — OnboardingPrefs type, title on RankingQuery
+- `backend/.../dto/ranking/RankingQueryDto.java` — title field
+- `backend/.../controller/RankingController.java` — title param
+- `backend/.../service/RankingService.java` — title filter in matchesFilters
+- `backend/src/main/resources/db/migration/V8__add_new_platforms.sql` — 7 new platforms
+- `backend/src/main/resources/db/migration/V9__add_scoring_weights_to_ranking_config.sql` — rating/playtime/price weight columns
+- `backend/.../repository/GameCacheRepository.java` — `findAllScorable()` (includes free + multiplayer)
+- `backend/.../service/RankingService.java` — weighted `computeValueScore`, `effectivePriceCents`, free/multiplayer filtering
+- `frontend/src/pages/RankingsPage.tsx` — weight sliders (Advanced Scoring), include checkboxes, new reducer actions
+- `frontend/src/pages/RankingsPage.css` — checkbox, scoring slider, advanced details styles
 
 ## Verification
 
-- `backend/mvnw.cmd test` — 36+ tests passing (last run 2026-04-06).
-- `frontend/npm run build` passes clean (Vercel deploys succeed).
+- `backend/mvnw.cmd test` — 43 tests passing (2026-04-12).
+- `frontend/npm run build` passes clean.
 
 ## Open Risks / Notes
 
@@ -60,10 +68,16 @@
 Project page ID: `jd7fbgc841fk9pt764973gwvax84nxy6`
 Read or post at [paper.ruixen.app](https://paper.ruixen.app) — give this ID to any agent for instant project context.
 
+## Open Risks / Notes (updated)
+
+- HLTB resync (10,642 games) was still running at handoff. Check Railway logs for final `matched`/`fallback` count.
+- HLTB sessions expire after ~300 requests — 403 auto-refresh is now implemented; should handle the full run.
+- Virtual console / port detection deferred — IGDB has `version_parent` field but we don't store it yet.
+- Free/multiplayer scoring not yet implemented — scoring design decision still open.
+- War Thunder and similar live-service games: playtime capped at 200hrs for scoring, but `is_multiplayer_only` flag may not be set correctly in DB for all games.
+
 ## Next Sensible Step
 
-1. **Investigate HLTB data quality** — many games show exactly 50.0 hrs playtime because HLTB title matching is failing and falling back to `genre_hltb_fallback` (RPG = 50 hrs). Need to trigger `POST /admin/sync`, read logs for matched vs fallback count. If matched count is low, HLTB may be blocking Railway's IP or the API endpoint has changed. The `hltb_found` flag on `GameCache` already tracks this — consider exposing it in the DTO/UI so users can see which hours are estimated.
-2. **Game card grid view** — replace table with cards showing cover art, title, value score, rating, price, platform tags. Frontend-only change (IGDB already provides `cover_url` on GameCache).
-3. **Search by title** — backend param + frontend text input. Small lift.
-4. **Include free/freemium games** — scoring adjustment: skip price component, rank by rating×hours or similar. Needs design decision.
-5. **Include multiplayer-only games** — scoring adjustment: skip hours-to-beat component. Needs design decision.
+1. **Free/multiplayer scoring** — design decision needed. Onboarding stores the user prefs (`includeFreeToPlay`, `includeMultiplayerOnly`) but the backend ignores them. Scoring formula needs to be defined for each case before wiring.
+2. **Deploy V8 migration** — push to Railway and verify new platforms appear in the picker.
+3. **Mobile-first CSS pass** — currently desktop-first (`max-width` queries); flip to `min-width`.

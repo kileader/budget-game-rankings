@@ -48,6 +48,15 @@ public class RankingConfig {
     @Column(name = "max_playtime_hours", precision = 6, scale = 2)
     private BigDecimal maxPlaytimeHours;
 
+    @Column(name = "rating_weight", precision = 3, scale = 2, nullable = false)
+    private BigDecimal ratingWeight = BigDecimal.ONE;
+
+    @Column(name = "playtime_weight", precision = 3, scale = 2, nullable = false)
+    private BigDecimal playtimeWeight = BigDecimal.ONE;
+
+    @Column(name = "price_weight", precision = 3, scale = 2, nullable = false)
+    private BigDecimal priceWeight = BigDecimal.ONE;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt = OffsetDateTime.now();
 

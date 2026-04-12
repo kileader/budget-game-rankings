@@ -65,6 +65,7 @@ class RankingServiceTest {
                 3000,
                 new BigDecimal("10.00"),
                 new BigDecimal("20.00"),
+                null, null, null, null, false, false,
                 RankingSort.VALUE_SCORE,
                 SortDirection.DESC,
                 0,
@@ -89,6 +90,7 @@ class RankingServiceTest {
 
         RankingPageDto page = service.getRankingsPage(new RankingQueryDto(
                 null, null, null, null, null, null, null, null,
+                null, null, null, null, false, false,
                 RankingSort.RELEASE_DATE, SortDirection.DESC,
                 1,
                 1
@@ -107,21 +109,94 @@ class RankingServiceTest {
 
         assertThatThrownBy(() -> service.getRankingsPage(new RankingQueryDto(
                 null, null, 2025, 2020, null, null, null, null,
+                null, null, null, null, false, false,
                 RankingSort.VALUE_SCORE, SortDirection.DESC, 0, 100
         )))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("releaseYearMin");
     }
 
+    @Test
+    void weightedScoringReducesPlaytimeInfluence() {
+        GameCache longGame = buildGame(1L, "Long Game", "80.00", "50.00",
+                2000, null, LocalDate.of(2022, 1, 1), new int[]{130}, new int[]{12});
+        GameCache shortGame = buildGame(2L, "Short Game", "80.00", "5.00",
+                2000, null, LocalDate.of(2022, 1, 1), new int[]{130}, new int[]{12});
+
+        RankingService service = serviceWithGames(longGame, shortGame);
+
+        RankingPageDto defaultPage = service.getRankingsPage(query(RankingSort.VALUE_SCORE));
+        assertThat(defaultPage.results().getFirst().igdbGameId()).isEqualTo(1L);
+
+        RankingPageDto zeroPlaytime = service.getRankingsPage(new RankingQueryDto(
+                null, null, null, null, null, null, null, null,
+                null, null, BigDecimal.ZERO, null, false, false,
+                RankingSort.VALUE_SCORE, SortDirection.DESC, 0, 100
+        ));
+        assertThat(zeroPlaytime.results().getFirst().valueScore())
+                .isEqualTo(zeroPlaytime.results().get(1).valueScore());
+    }
+
+    @Test
+    void includesFreeGamesWhenFlagSet() {
+        GameCache freeGame = buildGame(1L, "Free Game", "90.00", "20.00",
+                null, null, LocalDate.of(2022, 1, 1), new int[]{130}, new int[]{12});
+        freeGame.setFree(true);
+        GameCache paidGame = buildGame(2L, "Paid Game", "90.00", "20.00",
+                2000, null, LocalDate.of(2022, 1, 1), new int[]{130}, new int[]{12});
+
+        GameCacheRepository repository = mock(GameCacheRepository.class);
+        when(repository.findAllRankable()).thenReturn(List.of(paidGame));
+        when(repository.findAllScorable()).thenReturn(List.of(freeGame, paidGame));
+        RankingService service = new RankingService(repository);
+
+        RankingPageDto excluded = service.getRankingsPage(query(RankingSort.VALUE_SCORE));
+        assertThat(excluded.total()).isEqualTo(1);
+        assertThat(excluded.results().getFirst().igdbGameId()).isEqualTo(2L);
+
+        RankingPageDto included = service.getRankingsPage(new RankingQueryDto(
+                null, null, null, null, null, null, null, null,
+                null, null, null, null, true, false,
+                RankingSort.VALUE_SCORE, SortDirection.DESC, 0, 100
+        ));
+        assertThat(included.total()).isEqualTo(2);
+    }
+
+    @Test
+    void includesMultiplayerOnlyWhenFlagSet() {
+        GameCache mpGame = buildGame(1L, "MP Game", "85.00", "30.00",
+                2000, null, LocalDate.of(2022, 1, 1), new int[]{130}, new int[]{12});
+        mpGame.setMultiplayerOnly(true);
+        GameCache spGame = buildGame(2L, "SP Game", "85.00", "30.00",
+                2000, null, LocalDate.of(2022, 1, 1), new int[]{130}, new int[]{12});
+
+        GameCacheRepository repository = mock(GameCacheRepository.class);
+        when(repository.findAllRankable()).thenReturn(List.of(spGame));
+        when(repository.findAllScorable()).thenReturn(List.of(mpGame, spGame));
+        RankingService service = new RankingService(repository);
+
+        RankingPageDto excluded = service.getRankingsPage(query(RankingSort.VALUE_SCORE));
+        assertThat(excluded.total()).isEqualTo(1);
+
+        RankingPageDto included = service.getRankingsPage(new RankingQueryDto(
+                null, null, null, null, null, null, null, null,
+                null, null, null, null, false, true,
+                RankingSort.VALUE_SCORE, SortDirection.DESC, 0, 100
+        ));
+        assertThat(included.total()).isEqualTo(2);
+    }
+
     private RankingService serviceWithGames(GameCache... games) {
         GameCacheRepository repository = mock(GameCacheRepository.class);
         when(repository.findAllRankable()).thenReturn(List.of(games));
+        when(repository.findAllScorable()).thenReturn(List.of(games));
         return new RankingService(repository);
     }
 
     private RankingQueryDto query(RankingSort sort) {
         return new RankingQueryDto(
                 null, null, null, null, null, null, null, null,
+                null, null, null, null, false, false,
                 sort, SortDirection.DESC, 0, 100
         );
     }

@@ -5,8 +5,10 @@ import { getPlatforms, getGenres } from '../api/metadata';
 import { createConfig } from '../api/rankingConfigs';
 import { ApiError } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { useOnboarding } from '../context/OnboardingContext';
 import SavedConfigs from '../components/SavedConfigs';
-import type { MetadataItem, RankingConfig, RankingPage, RankingQuery, RankingResult, RankingSort, SortDirection } from '../types';
+import MultiSelect from '../components/MultiSelect';
+import type { MetadataItem, OnboardingPrefs, RankingConfig, RankingPage, RankingQuery, RankingResult, RankingSort, SortDirection } from '../types';
 
 const PAGE_LIMIT = 50;
 
@@ -31,6 +33,12 @@ type Filters = {
   maxPriceDollars: string;
   minPlaytimeHours: string;
   maxPlaytimeHours: string;
+  title: string;
+  ratingWeight: string;
+  playtimeWeight: string;
+  priceWeight: string;
+  includeFreeToPlay: boolean;
+  includeMultiplayerOnly: boolean;
   sort: RankingSort;
   sortDir: SortDirection;
 };
@@ -44,8 +52,15 @@ type State = {
   error: string | null;
 };
 
+type FilterField = keyof Omit<Filters, 'platformIds' | 'genreIds' | 'sort' | 'sortDir' | 'title' | 'ratingWeight' | 'playtimeWeight' | 'priceWeight' | 'includeFreeToPlay' | 'includeMultiplayerOnly'>;
+type WeightField = 'ratingWeight' | 'playtimeWeight' | 'priceWeight';
+type IncludeField = 'includeFreeToPlay' | 'includeMultiplayerOnly';
+
 type Action =
-  | { type: 'SET_FILTER'; field: keyof Omit<Filters, 'platformIds' | 'genreIds' | 'sort' | 'sortDir'>; value: string }
+  | { type: 'SET_FILTER'; field: FilterField; value: string }
+  | { type: 'SET_TITLE'; value: string }
+  | { type: 'SET_WEIGHT'; field: WeightField; value: string }
+  | { type: 'SET_INCLUDE'; field: IncludeField; value: boolean }
   | { type: 'SET_MULTI_FILTER'; field: 'platformIds' | 'genreIds'; ids: number[] }
   | { type: 'SET_SORT'; sort: RankingSort; dir: SortDirection }
   | { type: 'APPLY_FILTERS' }
@@ -54,7 +69,8 @@ type Action =
   | { type: 'FETCH_START' }
   | { type: 'FETCH_SUCCESS'; data: RankingPage }
   | { type: 'FETCH_ERROR'; error: string }
-  | { type: 'SET_VALIDATION_ERROR'; error: string | null };
+  | { type: 'SET_VALIDATION_ERROR'; error: string | null }
+  | { type: 'APPLY_ONBOARDING'; prefs: OnboardingPrefs };
 
 const defaultFilters: Filters = {
   platformIds: [],
@@ -65,9 +81,32 @@ const defaultFilters: Filters = {
   maxPriceDollars: '',
   minPlaytimeHours: '',
   maxPlaytimeHours: '',
+  title: '',
+  ratingWeight: '1',
+  playtimeWeight: '1',
+  priceWeight: '1',
+  includeFreeToPlay: false,
+  includeMultiplayerOnly: false,
   sort: 'VALUE_SCORE',
   sortDir: 'DESC',
 };
+
+const YEAR_PRESET_MAP: Record<OnboardingPrefs['yearPreset'], string> = {
+  modern: '2015',
+  classic: '2005',
+  all: '',
+};
+
+function filtersFromOnboarding(prefs: OnboardingPrefs | null): Filters {
+  if (!prefs) return defaultFilters;
+  return {
+    ...defaultFilters,
+    platformIds: prefs.platformIds,
+    releaseYearMin: YEAR_PRESET_MAP[prefs.yearPreset],
+    includeFreeToPlay: prefs.includeFreeToPlay,
+    includeMultiplayerOnly: prefs.includeMultiplayerOnly,
+  };
+}
 
 function safeInt(s: string): number | undefined {
   const n = parseInt(s, 10);
@@ -91,6 +130,15 @@ function filtersToQuery(filters: Filters, offset: number): RankingQuery {
   if (maxPrice !== undefined) q.maxPriceCents = Math.round(maxPrice * 100);
   if (filters.minPlaytimeHours) q.minPlaytimeHours = safeFloat(filters.minPlaytimeHours);
   if (filters.maxPlaytimeHours) q.maxPlaytimeHours = safeFloat(filters.maxPlaytimeHours);
+  if (filters.title.trim()) q.title = filters.title.trim();
+  const rW = safeFloat(filters.ratingWeight);
+  if (rW !== undefined && rW !== 1) q.ratingWeight = rW;
+  const pW = safeFloat(filters.playtimeWeight);
+  if (pW !== undefined && pW !== 1) q.playtimeWeight = pW;
+  const prW = safeFloat(filters.priceWeight);
+  if (prW !== undefined && prW !== 1) q.priceWeight = prW;
+  if (filters.includeFreeToPlay) q.includeFreeToPlay = true;
+  if (filters.includeMultiplayerOnly) q.includeMultiplayerOnly = true;
   return q;
 }
 
@@ -104,6 +152,12 @@ function configToFilters(config: RankingConfig): Filters {
     maxPriceDollars: config.maxPriceCents !== null ? String(config.maxPriceCents / 100) : '',
     minPlaytimeHours: config.minPlaytimeHours !== null ? String(config.minPlaytimeHours) : '',
     maxPlaytimeHours: config.maxPlaytimeHours !== null ? String(config.maxPlaytimeHours) : '',
+    title: '',
+    ratingWeight: String(config.ratingWeight ?? 1),
+    playtimeWeight: String(config.playtimeWeight ?? 1),
+    priceWeight: String(config.priceWeight ?? 1),
+    includeFreeToPlay: false,
+    includeMultiplayerOnly: false,
     sort: 'VALUE_SCORE',
     sortDir: 'DESC',
   };
@@ -157,6 +211,7 @@ function filtersToConfigRequest(name: string, filters: Filters) {
     releaseYearMin?: number; releaseYearMax?: number;
     minPriceCents?: number; maxPriceCents?: number;
     minPlaytimeHours?: number; maxPlaytimeHours?: number;
+    ratingWeight?: number; playtimeWeight?: number; priceWeight?: number;
   } = { name };
   if (filters.platformIds.length) req.platformIds = filters.platformIds;
   if (filters.genreIds.length) req.genreIds = filters.genreIds;
@@ -172,12 +227,36 @@ function filtersToConfigRequest(name: string, filters: Filters) {
   if (minH !== undefined) req.minPlaytimeHours = minH;
   const maxH = safeFloat(filters.maxPlaytimeHours);
   if (maxH !== undefined) req.maxPlaytimeHours = maxH;
+  const rW = safeFloat(filters.ratingWeight);
+  if (rW !== undefined && rW !== 1) req.ratingWeight = rW;
+  const pW = safeFloat(filters.playtimeWeight);
+  if (pW !== undefined && pW !== 1) req.playtimeWeight = pW;
+  const prW = safeFloat(filters.priceWeight);
+  if (prW !== undefined && prW !== 1) req.priceWeight = prW;
   return req;
 }
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
     case 'SET_FILTER':
+      return {
+        ...state,
+        filters: { ...state.filters, [action.field]: action.value },
+        error: null,
+      };
+    case 'SET_TITLE':
+      return {
+        ...state,
+        filters: { ...state.filters, title: action.value },
+        error: null,
+      };
+    case 'SET_WEIGHT':
+      return {
+        ...state,
+        filters: { ...state.filters, [action.field]: action.value },
+        error: null,
+      };
+    case 'SET_INCLUDE':
       return {
         ...state,
         filters: { ...state.filters, [action.field]: action.value },
@@ -209,19 +288,26 @@ function reducer(state: State, action: Action): State {
       return { ...state, loading: false, error: action.error, data: null };
     case 'SET_VALIDATION_ERROR':
       return { ...state, error: action.error };
+    case 'APPLY_ONBOARDING': {
+      const filters = filtersFromOnboarding(action.prefs);
+      return { ...state, filters, offset: 0, appliedQuery: filtersToQuery(filters, 0) };
+    }
     default:
       return state;
   }
 }
 
-const initialState: State = {
-  filters: defaultFilters,
-  appliedQuery: filtersToQuery(defaultFilters, 0),
-  offset: 0,
-  data: null,
-  loading: false,
-  error: null,
-};
+function buildInitialState(prefs: OnboardingPrefs | null): State {
+  const filters = filtersFromOnboarding(prefs);
+  return {
+    filters,
+    appliedQuery: filtersToQuery(filters, 0),
+    offset: 0,
+    data: null,
+    loading: false,
+    error: null,
+  };
+}
 
 // --- Helpers ---
 
@@ -236,71 +322,6 @@ function formatNumber(n: number | null, decimals = 1): string {
 }
 
 // --- Sub-components ---
-
-function MultiSelect({
-  label,
-  options,
-  selected,
-  onChange,
-}: {
-  label: string;
-  options: MetadataItem[] | null;
-  selected: number[];
-  onChange: (ids: number[]) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  function toggle(id: number) {
-    onChange(selected.includes(id) ? selected.filter(x => x !== id) : [...selected, id]);
-  }
-
-  const summary = selected.length === 0 ? 'Any' : `${selected.length} selected`;
-
-  return (
-    <div className="multi-select" ref={ref}>
-      <span className="filter-group-label">{label}</span>
-      <button
-        type="button"
-        className="multi-select-trigger"
-        onClick={() => setOpen(o => !o)}
-        aria-expanded={open}
-      >
-        {summary}
-        <span className="multi-select-chevron" aria-hidden>▾</span>
-      </button>
-      {open && (
-        <div className="multi-select-dropdown" role="listbox" aria-multiselectable aria-label={label}>
-          {options === null && <p className="multi-select-empty">Loading…</p>}
-          {options !== null && options.length === 0 && <p className="multi-select-empty">None available</p>}
-          {(options ?? []).map(opt => (
-            <label key={opt.id} className="multi-select-option">
-              <input
-                type="checkbox"
-                checked={selected.includes(opt.id)}
-                onChange={() => toggle(opt.id)}
-              />
-              {opt.name}
-            </label>
-          ))}
-          {selected.length > 0 && (
-            <button type="button" className="multi-select-clear" onClick={() => onChange([])}>
-              Clear
-            </button>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
 
 function DualRangeSlider({
   rangeMin,
@@ -369,16 +390,22 @@ function FilterBar({
   genres,
   onFilterChange,
   onMultiFilterChange,
+  onTitleChange,
+  onWeightChange,
+  onIncludeChange,
   onApply,
 }: {
   filters: Filters;
   platforms: MetadataItem[] | null;
   genres: MetadataItem[] | null;
-  onFilterChange: (field: keyof Omit<Filters, 'platformIds' | 'genreIds' | 'sort' | 'sortDir'>, value: string) => void;
+  onFilterChange: (field: FilterField, value: string) => void;
   onMultiFilterChange: (field: 'platformIds' | 'genreIds', ids: number[]) => void;
+  onTitleChange: (value: string) => void;
+  onWeightChange: (field: WeightField, value: string) => void;
+  onIncludeChange: (field: IncludeField, value: boolean) => void;
   onApply: () => void;
 }) {
-  function field(label: string, key: keyof Omit<Filters, 'platformIds' | 'genreIds' | 'sort' | 'sortDir'>, placeholder: string) {
+  function field(label: string, key: FilterField, placeholder: string) {
     return (
       <div className="filter-field">
         <label htmlFor={`filter-${key}`}>{label}</label>
@@ -399,6 +426,16 @@ function FilterBar({
       onSubmit={e => { e.preventDefault(); onApply(); }}
       aria-label="Ranking filters"
     >
+      <div className="filter-field filter-title-field">
+        <label htmlFor="filter-title">Search</label>
+        <input
+          id="filter-title"
+          type="text"
+          placeholder="Game title…"
+          value={filters.title}
+          onChange={e => onTitleChange(e.target.value)}
+        />
+      </div>
       <MultiSelect
         label="Platform"
         options={platforms}
@@ -450,7 +487,42 @@ function FilterBar({
           {field('Max', 'maxPlaytimeHours', '200')}
         </div>
       </div>
+      <div className="filter-include-group">
+        <label className="filter-checkbox">
+          <input
+            type="checkbox"
+            checked={filters.includeFreeToPlay}
+            onChange={e => onIncludeChange('includeFreeToPlay', e.target.checked)}
+          />
+          Include free-to-play
+        </label>
+        <label className="filter-checkbox">
+          <input
+            type="checkbox"
+            checked={filters.includeMultiplayerOnly}
+            onChange={e => onIncludeChange('includeMultiplayerOnly', e.target.checked)}
+          />
+          Include multiplayer-only
+        </label>
+      </div>
       <button type="submit">Apply</button>
+      <details className="scoring-advanced">
+        <summary>Advanced Scoring</summary>
+        <div className="scoring-sliders">
+          <label className="scoring-slider">
+            <span>Rating weight: {filters.ratingWeight}</span>
+            <input type="range" min="0" max="2" step="0.1" value={filters.ratingWeight} onChange={e => onWeightChange('ratingWeight', e.target.value)} />
+          </label>
+          <label className="scoring-slider">
+            <span>Playtime weight: {filters.playtimeWeight}</span>
+            <input type="range" min="0" max="2" step="0.1" value={filters.playtimeWeight} onChange={e => onWeightChange('playtimeWeight', e.target.value)} />
+          </label>
+          <label className="scoring-slider">
+            <span>Price weight: {filters.priceWeight}</span>
+            <input type="range" min="0" max="2" step="0.1" value={filters.priceWeight} onChange={e => onWeightChange('priceWeight', e.target.value)} />
+          </label>
+        </div>
+      </details>
     </form>
   );
 }
@@ -607,7 +679,8 @@ function Pagination({
 
 export default function RankingsPage() {
   const { token, isLoggedIn } = useAuth();
-  const [state, dispatch] = useReducer(reducer, initialState);
+  const { prefs } = useOnboarding();
+  const [state, dispatch] = useReducer(reducer, prefs, buildInitialState);
   const { filters, appliedQuery, offset, data, loading, error } = state;
 
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -618,6 +691,14 @@ export default function RankingsPage() {
     void getPlatforms().then(setPlatforms).catch(() => setPlatforms([]));
     void getGenres().then(setGenres).catch(() => setGenres([]));
   }, []);
+
+  const prefsRef = useRef(prefs);
+  useEffect(() => {
+    if (prefs && prefs !== prefsRef.current) {
+      dispatch({ type: 'APPLY_ONBOARDING', prefs });
+    }
+    prefsRef.current = prefs;
+  }, [prefs]);
 
   const fetchData = useCallback(async () => {
     dispatch({ type: 'FETCH_START' });
@@ -680,6 +761,9 @@ export default function RankingsPage() {
         genres={genres}
         onFilterChange={(field, value) => dispatch({ type: 'SET_FILTER', field, value })}
         onMultiFilterChange={(field, ids) => dispatch({ type: 'SET_MULTI_FILTER', field, ids })}
+        onTitleChange={value => dispatch({ type: 'SET_TITLE', value })}
+        onWeightChange={(field, value) => dispatch({ type: 'SET_WEIGHT', field, value })}
+        onIncludeChange={(field, value) => dispatch({ type: 'SET_INCLUDE', field, value })}
         onApply={() => {
           const err = validateFilters(filters);
           if (err) {

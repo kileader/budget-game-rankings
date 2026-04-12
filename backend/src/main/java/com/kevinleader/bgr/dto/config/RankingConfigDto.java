@@ -15,6 +15,9 @@ public record RankingConfigDto(
         Integer maxPriceCents,
         BigDecimal minPlaytimeHours,
         BigDecimal maxPlaytimeHours,
+        BigDecimal ratingWeight,
+        BigDecimal playtimeWeight,
+        BigDecimal priceWeight,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt
 ) {

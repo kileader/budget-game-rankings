@@ -9,6 +9,10 @@ export function createConfig(body: RankingConfigRequest, token: string): Promise
   return api.post<RankingConfig>('/users/me/ranking-configs', body, token);
 }
 
+export function updateConfig(id: number, body: RankingConfigRequest, token: string): Promise<RankingConfig> {
+  return api.put<RankingConfig>(`/users/me/ranking-configs/${id}`, body, token);
+}
+
 export function deleteConfig(id: number, token: string): Promise<void> {
   return api.delete<void>(`/users/me/ranking-configs/${id}`, token);
 }

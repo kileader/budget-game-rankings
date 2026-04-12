@@ -8,6 +8,7 @@ import com.kevinleader.bgr.repository.RankingConfigRepository;
 import com.kevinleader.bgr.exception.NotFoundException;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -60,6 +61,9 @@ public class RankingConfigService {
         config.setMaxPriceCents(request.maxPriceCents());
         config.setMinPlaytimeHours(request.minPlaytimeHours());
         config.setMaxPlaytimeHours(request.maxPlaytimeHours());
+        config.setRatingWeight(weightOrDefault(request.ratingWeight()));
+        config.setPlaytimeWeight(weightOrDefault(request.playtimeWeight()));
+        config.setPriceWeight(weightOrDefault(request.priceWeight()));
 
         return toDto(rankingConfigRepository.save(config));
     }
@@ -82,6 +86,9 @@ public class RankingConfigService {
         config.setMaxPriceCents(request.maxPriceCents());
         config.setMinPlaytimeHours(request.minPlaytimeHours());
         config.setMaxPlaytimeHours(request.maxPlaytimeHours());
+        config.setRatingWeight(weightOrDefault(request.ratingWeight()));
+        config.setPlaytimeWeight(weightOrDefault(request.playtimeWeight()));
+        config.setPriceWeight(weightOrDefault(request.priceWeight()));
         return config;
     }
 
@@ -97,9 +104,16 @@ public class RankingConfigService {
                 config.getMaxPriceCents(),
                 config.getMinPlaytimeHours(),
                 config.getMaxPlaytimeHours(),
+                config.getRatingWeight(),
+                config.getPlaytimeWeight(),
+                config.getPriceWeight(),
                 config.getCreatedAt(),
                 config.getUpdatedAt()
         );
+    }
+
+    private BigDecimal weightOrDefault(BigDecimal weight) {
+        return weight != null ? weight : BigDecimal.ONE;
     }
 
     private int[] toIntArray(List<Integer> list) {

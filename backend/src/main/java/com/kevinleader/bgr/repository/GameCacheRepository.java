@@ -34,6 +34,17 @@ public interface GameCacheRepository extends JpaRepository<GameCache, Long> {
             """)
     List<GameCache> findAllRankable();
 
+    /** Broader query that includes free and multiplayer-only games (filtered in Java by query flags). */
+    @Query("""
+            SELECT g
+            FROM GameCache g
+            WHERE g.igdbRating IS NOT NULL
+              AND g.igdbRatingCount >= 10
+              AND g.hltbHours IS NOT NULL
+              AND (g.isFree = true OR g.cheapsharkPriceCents IS NOT NULL OR g.estimatedPriceCents IS NOT NULL)
+            """)
+    List<GameCache> findAllScorable();
+
     // RANKABLE CRITERIA — keep in sync with findAllRankable() above and the two native queries below.
     // If the ranking filter changes (e.g. tighten minRatingCount, add an exclusion flag),
     // update all three: findAllRankable, findRankablePlatforms, findRankableGenres.

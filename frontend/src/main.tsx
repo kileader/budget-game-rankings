@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
+import { OnboardingProvider } from './context/OnboardingContext'
 import App from './App.tsx'
 import RankingsPage from './pages/RankingsPage.tsx'
 import LoginPage from './pages/LoginPage.tsx'
@@ -14,6 +15,7 @@ if (!rootEl) throw new Error('Missing #root element');
 createRoot(rootEl).render(
   <StrictMode>
     <AuthProvider>
+      <OnboardingProvider>
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<App />}>
@@ -23,6 +25,7 @@ createRoot(rootEl).render(
           </Route>
         </Routes>
       </BrowserRouter>
+      </OnboardingProvider>
     </AuthProvider>
   </StrictMode>,
 )

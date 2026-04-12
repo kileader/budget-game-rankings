@@ -1,9 +1,11 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useOnboarding } from '../context/OnboardingContext';
 import './Nav.css';
 
 export default function Nav() {
   const { isLoggedIn, username, logout } = useAuth();
+  const { openModal } = useOnboarding();
   const navigate = useNavigate();
 
   function handleLogout() {
@@ -15,6 +17,7 @@ export default function Nav() {
     <nav className="site-nav" aria-label="Site navigation">
       <Link to="/" className="site-title">Budget Game Rankings</Link>
       <div className="nav-actions">
+        <button className="nav-setup" onClick={openModal}>My Setup</button>
         {isLoggedIn ? (
           <>
             <span className="nav-username">{username}</span>

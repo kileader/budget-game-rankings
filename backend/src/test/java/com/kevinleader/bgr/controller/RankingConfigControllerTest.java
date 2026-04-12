@@ -12,6 +12,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -39,7 +40,8 @@ class RankingConfigControllerTest {
 
     private RankingConfigDto sampleDto() {
         return new RankingConfigDto(1L, "Budget RPGs", List.of(), List.of(),
-                null, null, 0, 2000, null, null, null, null);
+                null, null, 0, 2000, null, null,
+                BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE, null, null);
     }
 
     private MockMvc buildMockMvc(RankingConfigService service) {
@@ -117,7 +119,8 @@ class RankingConfigControllerTest {
         MockMvc mockMvc = buildMockMvc(service);
 
         RankingConfigDto updated = new RankingConfigDto(1L, "Cheap Shooters", List.of(), List.of(),
-                null, null, 0, 1500, null, null, null, null);
+                null, null, 0, 1500, null, null,
+                BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE, null, null);
         when(service.updateConfig(any(), eq(1L), any())).thenReturn(updated);
 
         mockMvc.perform(put("/users/me/ranking-configs/1")

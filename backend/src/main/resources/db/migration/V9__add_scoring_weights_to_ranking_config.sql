@@ -1,0 +1,4 @@
+ALTER TABLE ranking_config
+  ADD COLUMN rating_weight   DECIMAL(3,2) NOT NULL DEFAULT 1.00,
+  ADD COLUMN playtime_weight DECIMAL(3,2) NOT NULL DEFAULT 1.00,
+  ADD COLUMN price_weight    DECIMAL(3,2) NOT NULL DEFAULT 1.00;

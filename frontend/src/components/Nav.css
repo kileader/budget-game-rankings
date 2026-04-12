@@ -56,6 +56,25 @@
   }
 }
 
+.nav-setup {
+  background: none;
+  border: 1px solid var(--accent-border);
+  border-radius: 4px;
+  padding: 5px 12px;
+  font-size: 13px;
+  color: var(--accent);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--accent-bg);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
 .nav-username {
   color: var(--text);
   font-size: 14px;

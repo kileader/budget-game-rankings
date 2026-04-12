@@ -2,11 +2,9 @@
 
 ## Active Queue
 
-1. Investigate HLTB data quality — most games show 50.0 hrs (RPG genre fallback). Trigger sync, read logs, check matched vs fallback ratio. If HLTB is blocking Railway IP or API changed, fix or find alternative.
-2. Game card grid view — cover art cards instead of table; show value score, rating, price, platform tags.
-3. Search by title — backend `title` query param + frontend text input.
-4. Include free/freemium games — adjusted scoring (skip price component).
-5. Include multiplayer-only games — adjusted scoring (skip hours-to-beat component).
+1. **Deploy V8 + V9 migrations** — push and verify new platforms and scoring weight columns are live.
+2. **Mobile-first CSS pass** — flip `max-width` media queries to `min-width`.
+3. **Weight persistence in onboarding** — save weight prefs to localStorage and "My Setup" config so they survive reload.
 
 ## Planned Features
 

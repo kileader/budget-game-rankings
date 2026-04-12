@@ -12,6 +12,12 @@ export function getRankings(query: RankingQuery = {}): Promise<RankingPage> {
   if (query.maxPriceCents !== undefined) params.set('maxPriceCents', String(query.maxPriceCents));
   if (query.minPlaytimeHours !== undefined) params.set('minPlaytimeHours', String(query.minPlaytimeHours));
   if (query.maxPlaytimeHours !== undefined) params.set('maxPlaytimeHours', String(query.maxPlaytimeHours));
+  if (query.title) params.set('title', query.title);
+  if (query.ratingWeight !== undefined && query.ratingWeight !== 1) params.set('ratingWeight', String(query.ratingWeight));
+  if (query.playtimeWeight !== undefined && query.playtimeWeight !== 1) params.set('playtimeWeight', String(query.playtimeWeight));
+  if (query.priceWeight !== undefined && query.priceWeight !== 1) params.set('priceWeight', String(query.priceWeight));
+  if (query.includeFreeToPlay) params.set('includeFreeToPlay', 'true');
+  if (query.includeMultiplayerOnly) params.set('includeMultiplayerOnly', 'true');
   if (query.sort) params.set('sort', query.sort);
   if (query.sortDirection) params.set('sortDirection', query.sortDirection);
   if (query.offset !== undefined) params.set('offset', String(query.offset));

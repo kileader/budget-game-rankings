@@ -45,6 +45,12 @@ export type RankingQuery = {
   maxPriceCents?: number;
   minPlaytimeHours?: number;
   maxPlaytimeHours?: number;
+  title?: string;
+  ratingWeight?: number;
+  playtimeWeight?: number;
+  priceWeight?: number;
+  includeFreeToPlay?: boolean;
+  includeMultiplayerOnly?: boolean;
   sort?: RankingSort;
   sortDirection?: SortDirection;
   offset?: number;
@@ -77,6 +83,15 @@ export type CurrentUser = {
   role: string;
 };
 
+// --- Onboarding ---
+
+export type OnboardingPrefs = {
+  platformIds: number[];
+  yearPreset: 'modern' | 'classic' | 'all';
+  includeFreeToPlay: boolean;
+  includeMultiplayerOnly: boolean;
+};
+
 // --- Ranking Configs ---
 // Flat shape — mirrors backend RankingConfigDto directly (no nested filters object).
 
@@ -91,6 +106,9 @@ export type RankingConfig = {
   maxPriceCents: number | null;
   minPlaytimeHours: number | null;
   maxPlaytimeHours: number | null;
+  ratingWeight: number;
+  playtimeWeight: number;
+  priceWeight: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -105,4 +123,7 @@ export type RankingConfigRequest = {
   maxPriceCents?: number;
   minPlaytimeHours?: number;
   maxPlaytimeHours?: number;
+  ratingWeight?: number;
+  playtimeWeight?: number;
+  priceWeight?: number;
 };

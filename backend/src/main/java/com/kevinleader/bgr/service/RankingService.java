@@ -29,7 +29,8 @@ public class RankingService {
 
     public List<RankingResultDto> getTopRankings(int limit) {
         return getRankingsPage(new RankingQueryDto(
-                null, null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null,
+                null, null, null, false, false,
                 RankingSort.VALUE_SCORE, SortDirection.DESC, 0, limit
         )).results();
     }
@@ -38,9 +39,15 @@ public class RankingService {
         validateQuery(query);
         int safeLimit = query.limit();
         int safeOffset = query.offset();
-        Comparator<GameCache> comparator = buildComparator(query.sort(), query.sortDirection());
 
-        List<GameCache> rankedGames = gameCacheRepository.findAllRankable().stream()
+        boolean inclusive = query.includeFreeToPlay() || query.includeMultiplayerOnly();
+        List<GameCache> source = inclusive
+                ? gameCacheRepository.findAllScorable()
+                : gameCacheRepository.findAllRankable();
+
+        Comparator<GameCache> comparator = buildComparator(query);
+
+        List<GameCache> rankedGames = source.stream()
                 .filter(game -> matchesFilters(game, query))
                 .sorted(comparator)
                 .toList();
@@ -48,7 +55,7 @@ public class RankingService {
         List<RankingResultDto> paged = rankedGames.stream()
                 .skip(safeOffset)
                 .limit(safeLimit)
-                .map(this::toRankingResult)
+                .map(game -> toRankingResult(game, query))
                 .toList();
 
         return new RankingPageDto(safeOffset, safeLimit, rankedGames.size(), paged);
@@ -75,11 +82,11 @@ public class RankingService {
         }
     }
 
-    private Comparator<GameCache> buildComparator(RankingSort sort, SortDirection direction) {
-        RankingSort safeSort = sort == null ? RankingSort.VALUE_SCORE : sort;
-        boolean desc = direction == null || direction == SortDirection.DESC;
-        // Always show highest value score among ties regardless of primary sort direction
-        Comparator<GameCache> tiebreak = Comparator.comparing(this::computeValueScore, Comparator.reverseOrder());
+    private Comparator<GameCache> buildComparator(RankingQueryDto query) {
+        RankingSort safeSort = query.sort() == null ? RankingSort.VALUE_SCORE : query.sort();
+        boolean desc = query.sortDirection() == null || query.sortDirection() == SortDirection.DESC;
+        Comparator<GameCache> tiebreak = Comparator.comparing(
+                (GameCache g) -> computeValueScore(g, query), Comparator.reverseOrder());
 
         return switch (safeSort) {
             case RATING -> {
@@ -91,7 +98,8 @@ public class RankingService {
                 yield (desc ? c.reversed() : c).thenComparing(tiebreak);
             }
             case PRICE -> {
-                Comparator<GameCache> c = Comparator.comparing(GameCache::getEffectivePriceCents);
+                Comparator<GameCache> c = Comparator.comparing(
+                        (GameCache g) -> effectivePriceCents(g, query.includeFreeToPlay()));
                 yield (desc ? c.reversed() : c).thenComparing(tiebreak);
             }
             case TITLE -> {
@@ -104,7 +112,8 @@ public class RankingService {
                                  : Comparator.nullsLast(Comparator.naturalOrder()))
                     .thenComparing(tiebreak);
             case VALUE_SCORE -> {
-                Comparator<GameCache> c = Comparator.comparing(this::computeValueScore)
+                Comparator<GameCache> c = Comparator.comparing(
+                                (GameCache g) -> computeValueScore(g, query))
                         .thenComparing(GameCache::getIgdbRating, Comparator.reverseOrder());
                 yield desc ? c.reversed() : c;
             }
@@ -112,7 +121,14 @@ public class RankingService {
     }
 
     private boolean matchesFilters(GameCache game, RankingQueryDto query) {
-        Integer priceCents = game.getEffectivePriceCents();
+        if (game.isFree() && !query.includeFreeToPlay()) {
+            return false;
+        }
+        if (game.isMultiplayerOnly() && !query.includeMultiplayerOnly()) {
+            return false;
+        }
+
+        Integer priceCents = effectivePriceCents(game, query.includeFreeToPlay());
         if (priceCents == null) {
             return false;
         }
@@ -153,6 +169,11 @@ public class RankingService {
             return false;
         }
 
+        if (query.title() != null && !query.title().isBlank()
+                && !game.getTitle().toLowerCase(Locale.ROOT).contains(query.title().toLowerCase(Locale.ROOT))) {
+            return false;
+        }
+
         return true;
     }
 
@@ -165,13 +186,9 @@ public class RankingService {
         return IntStream.of(values).anyMatch(requestedSet::contains);
     }
 
-    private RankingResultDto toRankingResult(GameCache game) {
-        Integer priceCents = game.getEffectivePriceCents();
-        if (priceCents == null || priceCents <= 0) {
-            throw new IllegalStateException("Rankable game missing usable price: " + game.getIgdbGameId());
-        }
-
-        BigDecimal valueScore = computeValueScore(game);
+    private RankingResultDto toRankingResult(GameCache game, RankingQueryDto query) {
+        Integer priceCents = effectivePriceCents(game, query.includeFreeToPlay());
+        BigDecimal valueScore = computeValueScore(game, query);
 
         return new RankingResultDto(
                 game.getIgdbGameId(),
@@ -187,18 +204,29 @@ public class RankingService {
     }
 
     private static final BigDecimal PLAYTIME_CAP = BigDecimal.valueOf(200);
+    private static final int FREE_NOMINAL_CENTS = 100;
 
-    private BigDecimal computeValueScore(GameCache game) {
-        Integer priceCents = game.getEffectivePriceCents();
+    /** Returns the effective price, substituting $1.00 for free games when included. */
+    private static Integer effectivePriceCents(GameCache game, boolean includeFree) {
+        if (game.isFree() && includeFree) return FREE_NOMINAL_CENTS;
+        return game.getEffectivePriceCents();
+    }
+
+    private BigDecimal computeValueScore(GameCache game, RankingQueryDto query) {
+        Integer priceCents = effectivePriceCents(game, query.includeFreeToPlay());
         if (priceCents == null || priceCents <= 0) {
             throw new IllegalStateException("Rankable game missing usable price: " + game.getIgdbGameId());
         }
 
-        BigDecimal priceDollars = BigDecimal.valueOf(priceCents)
-                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-        BigDecimal cappedHours = game.getHltbHours().min(PLAYTIME_CAP);
-        return game.getIgdbRating()
-                .multiply(cappedHours)
-                .divide(priceDollars, 4, RoundingMode.HALF_UP);
+        double rating = game.getIgdbRating().doubleValue();
+        double hours = game.getHltbHours().min(PLAYTIME_CAP).doubleValue();
+        double price = priceCents / 100.0;
+
+        double rW = query.effectiveRatingWeight().doubleValue();
+        double pW = query.effectivePlaytimeWeight().doubleValue();
+        double prW = query.effectivePriceWeight().doubleValue();
+
+        double score = Math.pow(rating, rW) * Math.pow(hours, pW) / Math.pow(price, prW);
+        return BigDecimal.valueOf(score).setScale(4, RoundingMode.HALF_UP);
     }
 }

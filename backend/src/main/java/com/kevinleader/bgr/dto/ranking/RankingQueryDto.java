@@ -12,9 +12,18 @@ public record RankingQueryDto(
         Integer maxPriceCents,
         BigDecimal minPlaytimeHours,
         BigDecimal maxPlaytimeHours,
+        String title,
+        BigDecimal ratingWeight,
+        BigDecimal playtimeWeight,
+        BigDecimal priceWeight,
+        boolean includeFreeToPlay,
+        boolean includeMultiplayerOnly,
         RankingSort sort,
         SortDirection sortDirection,
         int offset,
         int limit
 ) {
+    public BigDecimal effectiveRatingWeight()   { return ratingWeight   != null ? ratingWeight   : BigDecimal.ONE; }
+    public BigDecimal effectivePlaytimeWeight() { return playtimeWeight != null ? playtimeWeight : BigDecimal.ONE; }
+    public BigDecimal effectivePriceWeight()    { return priceWeight    != null ? priceWeight    : BigDecimal.ONE; }
 }
