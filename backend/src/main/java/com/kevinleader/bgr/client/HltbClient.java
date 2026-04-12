@@ -8,8 +8,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 
 import java.util.Arrays;
 import java.util.List;
@@ -65,6 +67,12 @@ public class HltbClient {
         }
     }
 
+    /** Clears the cached init so the next search fetches a fresh token. */
+    private synchronized void invalidateInit() {
+        cachedInit = null;
+        initFetchedAt = 0;
+    }
+
     /**
      * Searches HLTB for a game by title via POST /api/find.
      * Sends the token and honeypot headers extracted from /api/find/init.
@@ -95,6 +103,14 @@ public class HltbClient {
             return req.body(body)
                     .retrieve()
                     .body(HltbSearchResponse.class);
+
+        } catch (RestClientResponseException e) {
+            if (e.getStatusCode() == HttpStatusCode.valueOf(403)) {
+                log.info("HLTB session expired — refreshing token");
+                invalidateInit();
+            }
+            log.warn("HLTB search failed for title='{}': {}", title, e.getMessage());
+            return null;
 
         } catch (RestClientException e) {
             log.warn("HLTB search failed for title='{}': {}", title, e.getMessage());
