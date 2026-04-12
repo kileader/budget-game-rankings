@@ -1,5 +1,5 @@
 import { api } from './client';
-import type { RankingPage, RankingQuery, SortDirection } from '../types';
+import type { RankingPage, RankingQuery } from '../types';
 
 export function getRankings(query: RankingQuery = {}): Promise<RankingPage> {
   const params = new URLSearchParams();
