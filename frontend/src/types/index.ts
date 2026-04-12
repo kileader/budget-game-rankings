@@ -34,6 +34,8 @@ export type RankingSort =
   | 'TITLE'
   | 'RELEASE_DATE';
 
+export type SortDirection = 'ASC' | 'DESC';
+
 export type RankingQuery = {
   platformIds?: number[];
   genreIds?: number[];
@@ -44,6 +46,7 @@ export type RankingQuery = {
   minPlaytimeHours?: number;
   maxPlaytimeHours?: number;
   sort?: RankingSort;
+  sortDirection?: SortDirection;
   offset?: number;
   limit?: number;
 };

@@ -4,6 +4,7 @@ import com.kevinleader.bgr.dto.ranking.RankingPageDto;
 import com.kevinleader.bgr.dto.ranking.RankingQueryDto;
 import com.kevinleader.bgr.dto.ranking.RankingResultDto;
 import com.kevinleader.bgr.dto.ranking.RankingSort;
+import com.kevinleader.bgr.dto.ranking.SortDirection;
 import com.kevinleader.bgr.exception.GlobalExceptionHandler;
 import com.kevinleader.bgr.service.RankingService;
 import org.junit.jupiter.api.Test;
@@ -92,6 +93,7 @@ class RankingControllerTest {
                         .param("minPlaytimeHours", "5.5")
                         .param("maxPlaytimeHours", "25.0")
                         .param("sort", "PRICE")
+                        .param("sortDirection", "ASC")
                         .param("offset", "5")
                         .param("limit", "25"))
                 .andExpect(status().isOk());
@@ -109,6 +111,7 @@ class RankingControllerTest {
         assertThat(query.minPlaytimeHours()).isEqualByComparingTo("5.5");
         assertThat(query.maxPlaytimeHours()).isEqualByComparingTo("25.0");
         assertThat(query.sort()).isEqualTo(RankingSort.PRICE);
+        assertThat(query.sortDirection()).isEqualTo(SortDirection.ASC);
         assertThat(query.offset()).isEqualTo(5);
         assertThat(query.limit()).isEqualTo(25);
     }

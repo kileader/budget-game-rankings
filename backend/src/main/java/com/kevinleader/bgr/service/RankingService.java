@@ -4,6 +4,7 @@ import com.kevinleader.bgr.dto.ranking.RankingPageDto;
 import com.kevinleader.bgr.dto.ranking.RankingQueryDto;
 import com.kevinleader.bgr.dto.ranking.RankingResultDto;
 import com.kevinleader.bgr.dto.ranking.RankingSort;
+import com.kevinleader.bgr.dto.ranking.SortDirection;
 import com.kevinleader.bgr.entity.GameCache;
 import com.kevinleader.bgr.repository.GameCacheRepository;
 import org.springframework.stereotype.Service;
@@ -29,7 +30,7 @@ public class RankingService {
     public List<RankingResultDto> getTopRankings(int limit) {
         return getRankingsPage(new RankingQueryDto(
                 null, null, null, null, null, null, null, null,
-                RankingSort.VALUE_SCORE, 0, limit
+                RankingSort.VALUE_SCORE, SortDirection.DESC, 0, limit
         )).results();
     }
 
@@ -37,7 +38,7 @@ public class RankingService {
         validateQuery(query);
         int safeLimit = query.limit();
         int safeOffset = query.offset();
-        Comparator<GameCache> comparator = buildComparator(query.sort());
+        Comparator<GameCache> comparator = buildComparator(query.sort(), query.sortDirection());
 
         List<GameCache> rankedGames = gameCacheRepository.findAllRankable().stream()
                 .filter(game -> matchesFilters(game, query))
@@ -74,27 +75,39 @@ public class RankingService {
         }
     }
 
-    private Comparator<GameCache> buildComparator(RankingSort sort) {
+    private Comparator<GameCache> buildComparator(RankingSort sort, SortDirection direction) {
         RankingSort safeSort = sort == null ? RankingSort.VALUE_SCORE : sort;
+        boolean desc = direction == null || direction == SortDirection.DESC;
+        // Always show highest value score among ties regardless of primary sort direction
+        Comparator<GameCache> tiebreak = Comparator.comparing(this::computeValueScore, Comparator.reverseOrder());
 
         return switch (safeSort) {
-            case RATING -> Comparator.comparing(GameCache::getIgdbRating)
-                    .reversed()
-                    .thenComparing(this::computeValueScore, Comparator.reverseOrder());
-            case PLAYTIME -> Comparator.comparing(GameCache::getHltbHours)
-                    .reversed()
-                    .thenComparing(this::computeValueScore, Comparator.reverseOrder());
-            case PRICE -> Comparator.comparing(GameCache::getEffectivePriceCents)
-                    .thenComparing(this::computeValueScore, Comparator.reverseOrder());
-            case TITLE -> Comparator.comparing(
-                            (GameCache game) -> game.getTitle().toLowerCase(Locale.ROOT))
-                    .thenComparing(this::computeValueScore, Comparator.reverseOrder());
+            case RATING -> {
+                Comparator<GameCache> c = Comparator.comparing(GameCache::getIgdbRating);
+                yield (desc ? c.reversed() : c).thenComparing(tiebreak);
+            }
+            case PLAYTIME -> {
+                Comparator<GameCache> c = Comparator.comparing(GameCache::getHltbHours);
+                yield (desc ? c.reversed() : c).thenComparing(tiebreak);
+            }
+            case PRICE -> {
+                Comparator<GameCache> c = Comparator.comparing(GameCache::getEffectivePriceCents);
+                yield (desc ? c.reversed() : c).thenComparing(tiebreak);
+            }
+            case TITLE -> {
+                Comparator<GameCache> c = Comparator.comparing(
+                        (GameCache game) -> game.getTitle().toLowerCase(Locale.ROOT));
+                yield (desc ? c.reversed() : c).thenComparing(tiebreak);
+            }
             case RELEASE_DATE -> Comparator.comparing(GameCache::getFirstReleaseDate,
-                            Comparator.nullsLast(Comparator.reverseOrder()))
-                    .thenComparing(this::computeValueScore, Comparator.reverseOrder());
-            case VALUE_SCORE -> Comparator.comparing(this::computeValueScore)
-                    .reversed()
-                    .thenComparing(GameCache::getIgdbRating, Comparator.reverseOrder());
+                            desc ? Comparator.nullsLast(Comparator.reverseOrder())
+                                 : Comparator.nullsLast(Comparator.naturalOrder()))
+                    .thenComparing(tiebreak);
+            case VALUE_SCORE -> {
+                Comparator<GameCache> c = Comparator.comparing(this::computeValueScore)
+                        .thenComparing(GameCache::getIgdbRating, Comparator.reverseOrder());
+                yield desc ? c.reversed() : c;
+            }
         };
     }
 

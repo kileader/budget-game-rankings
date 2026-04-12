@@ -3,6 +3,7 @@ package com.kevinleader.bgr.controller;
 import com.kevinleader.bgr.dto.ranking.RankingPageDto;
 import com.kevinleader.bgr.dto.ranking.RankingQueryDto;
 import com.kevinleader.bgr.dto.ranking.RankingSort;
+import com.kevinleader.bgr.dto.ranking.SortDirection;
 import com.kevinleader.bgr.service.RankingService;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -37,6 +38,7 @@ public class RankingController {
             @RequestParam(required = false) BigDecimal minPlaytimeHours,
             @RequestParam(required = false) BigDecimal maxPlaytimeHours,
             @RequestParam(defaultValue = "VALUE_SCORE") RankingSort sort,
+            @RequestParam(defaultValue = "DESC") SortDirection sortDirection,
             @RequestParam(defaultValue = "0") @Min(0) int offset,
             @RequestParam(defaultValue = "100") @Min(1) @Max(500) int limit) {
         return rankingService.getRankingsPage(new RankingQueryDto(
@@ -49,6 +51,7 @@ public class RankingController {
                 minPlaytimeHours,
                 maxPlaytimeHours,
                 sort,
+                sortDirection,
                 offset,
                 limit
         ));

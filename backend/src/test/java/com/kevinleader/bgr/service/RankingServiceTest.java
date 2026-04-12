@@ -3,6 +3,7 @@ package com.kevinleader.bgr.service;
 import com.kevinleader.bgr.dto.ranking.RankingPageDto;
 import com.kevinleader.bgr.dto.ranking.RankingQueryDto;
 import com.kevinleader.bgr.dto.ranking.RankingSort;
+import com.kevinleader.bgr.dto.ranking.SortDirection;
 import com.kevinleader.bgr.entity.GameCache;
 import com.kevinleader.bgr.repository.GameCacheRepository;
 import org.junit.jupiter.api.Test;
@@ -65,6 +66,7 @@ class RankingServiceTest {
                 new BigDecimal("10.00"),
                 new BigDecimal("20.00"),
                 RankingSort.VALUE_SCORE,
+                SortDirection.DESC,
                 0,
                 50
         ));
@@ -87,7 +89,7 @@ class RankingServiceTest {
 
         RankingPageDto page = service.getRankingsPage(new RankingQueryDto(
                 null, null, null, null, null, null, null, null,
-                RankingSort.RELEASE_DATE,
+                RankingSort.RELEASE_DATE, SortDirection.DESC,
                 1,
                 1
         ));
@@ -105,7 +107,7 @@ class RankingServiceTest {
 
         assertThatThrownBy(() -> service.getRankingsPage(new RankingQueryDto(
                 null, null, 2025, 2020, null, null, null, null,
-                RankingSort.VALUE_SCORE, 0, 100
+                RankingSort.VALUE_SCORE, SortDirection.DESC, 0, 100
         )))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("releaseYearMin");
@@ -120,7 +122,7 @@ class RankingServiceTest {
     private RankingQueryDto query(RankingSort sort) {
         return new RankingQueryDto(
                 null, null, null, null, null, null, null, null,
-                sort, 0, 100
+                sort, SortDirection.DESC, 0, 100
         );
     }
 

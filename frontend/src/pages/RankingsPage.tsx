@@ -6,18 +6,19 @@ import { createConfig } from '../api/rankingConfigs';
 import { ApiError } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import SavedConfigs from '../components/SavedConfigs';
-import type { MetadataItem, RankingConfig, RankingPage, RankingQuery, RankingResult, RankingSort } from '../types';
+import type { MetadataItem, RankingConfig, RankingPage, RankingQuery, RankingResult, RankingSort, SortDirection } from '../types';
 
 const PAGE_LIMIT = 50;
 
-const SORT_OPTIONS: { value: RankingSort; label: string }[] = [
-  { value: 'VALUE_SCORE', label: 'Value Score' },
-  { value: 'RATING', label: 'Rating' },
-  { value: 'PLAYTIME', label: 'Playtime' },
-  { value: 'PRICE', label: 'Price' },
-  { value: 'TITLE', label: 'Title' },
-  { value: 'RELEASE_DATE', label: 'Release Date' },
-];
+/** Natural first-click direction per column. */
+const SORT_DEFAULT_DIR: Record<RankingSort, SortDirection> = {
+  VALUE_SCORE: 'DESC',
+  RATING: 'DESC',
+  PLAYTIME: 'DESC',
+  PRICE: 'ASC',
+  TITLE: 'ASC',
+  RELEASE_DATE: 'DESC',
+};
 
 // --- State ---
 
@@ -31,6 +32,7 @@ type Filters = {
   minPlaytimeHours: string;
   maxPlaytimeHours: string;
   sort: RankingSort;
+  sortDir: SortDirection;
 };
 
 type State = {
@@ -43,8 +45,9 @@ type State = {
 };
 
 type Action =
-  | { type: 'SET_FILTER'; field: keyof Omit<Filters, 'platformIds' | 'genreIds'>; value: string }
+  | { type: 'SET_FILTER'; field: keyof Omit<Filters, 'platformIds' | 'genreIds' | 'sort' | 'sortDir'>; value: string }
   | { type: 'SET_MULTI_FILTER'; field: 'platformIds' | 'genreIds'; ids: number[] }
+  | { type: 'SET_SORT'; sort: RankingSort; dir: SortDirection }
   | { type: 'APPLY_FILTERS' }
   | { type: 'LOAD_CONFIG'; config: RankingConfig }
   | { type: 'SET_OFFSET'; offset: number }
@@ -63,6 +66,7 @@ const defaultFilters: Filters = {
   minPlaytimeHours: '',
   maxPlaytimeHours: '',
   sort: 'VALUE_SCORE',
+  sortDir: 'DESC',
 };
 
 function safeInt(s: string): number | undefined {
@@ -76,7 +80,7 @@ function safeFloat(s: string): number | undefined {
 }
 
 function filtersToQuery(filters: Filters, offset: number): RankingQuery {
-  const q: RankingQuery = { sort: filters.sort, offset, limit: PAGE_LIMIT };
+  const q: RankingQuery = { sort: filters.sort, sortDirection: filters.sortDir, offset, limit: PAGE_LIMIT };
   if (filters.platformIds.length) q.platformIds = filters.platformIds;
   if (filters.genreIds.length) q.genreIds = filters.genreIds;
   if (filters.releaseYearMin) q.releaseYearMin = safeInt(filters.releaseYearMin);
@@ -101,6 +105,7 @@ function configToFilters(config: RankingConfig): Filters {
     minPlaytimeHours: config.minPlaytimeHours !== null ? String(config.minPlaytimeHours) : '',
     maxPlaytimeHours: config.maxPlaytimeHours !== null ? String(config.maxPlaytimeHours) : '',
     sort: 'VALUE_SCORE',
+    sortDir: 'DESC',
   };
 }
 
@@ -184,6 +189,10 @@ function reducer(state: State, action: Action): State {
         filters: { ...state.filters, [action.field]: action.ids },
         error: null,
       };
+    case 'SET_SORT': {
+      const newFilters = { ...state.filters, sort: action.sort, sortDir: action.dir };
+      return { ...state, filters: newFilters, offset: 0, appliedQuery: filtersToQuery(newFilters, 0) };
+    }
     case 'APPLY_FILTERS':
       return { ...state, offset: 0, appliedQuery: filtersToQuery(state.filters, 0) };
     case 'LOAD_CONFIG': {
@@ -304,11 +313,11 @@ function FilterBar({
   filters: Filters;
   platforms: MetadataItem[] | null;
   genres: MetadataItem[] | null;
-  onFilterChange: (field: keyof Omit<Filters, 'platformIds' | 'genreIds'>, value: string) => void;
+  onFilterChange: (field: keyof Omit<Filters, 'platformIds' | 'genreIds' | 'sort' | 'sortDir'>, value: string) => void;
   onMultiFilterChange: (field: 'platformIds' | 'genreIds', ids: number[]) => void;
   onApply: () => void;
 }) {
-  function field(label: string, key: keyof Omit<Filters, 'platformIds' | 'genreIds'>, placeholder: string, type = 'number') {
+  function field(label: string, key: keyof Omit<Filters, 'platformIds' | 'genreIds' | 'sort' | 'sortDir'>, placeholder: string, type = 'number') {
     return (
       <div className="filter-field">
         <label htmlFor={`filter-${key}`}>{label}</label>
@@ -356,20 +365,42 @@ function FilterBar({
         {field('Min', 'minPlaytimeHours', 'e.g. 10')}
         {field('Max', 'maxPlaytimeHours', 'e.g. 100')}
       </div>
-      <div className="filter-field">
-        <label htmlFor="filter-sort">Sort by</label>
-        <select
-          id="filter-sort"
-          value={filters.sort}
-          onChange={e => onFilterChange('sort', e.target.value as RankingSort)}
-        >
-          {SORT_OPTIONS.map(o => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </select>
-      </div>
       <button type="submit">Apply</button>
     </form>
+  );
+}
+
+function SortableHeader({
+  label,
+  sortKey,
+  currentSort,
+  currentDir,
+  onSort,
+}: {
+  label: string;
+  sortKey: RankingSort;
+  currentSort: RankingSort;
+  currentDir: SortDirection;
+  onSort: (sort: RankingSort, dir: SortDirection) => void;
+}) {
+  const isActive = currentSort === sortKey;
+  const nextDir: SortDirection = isActive
+    ? currentDir === 'DESC' ? 'ASC' : 'DESC'
+    : SORT_DEFAULT_DIR[sortKey];
+
+  return (
+    <th scope="col">
+      <button
+        className={`sort-header${isActive ? ' sort-active' : ''}`}
+        onClick={() => onSort(sortKey, nextDir)}
+        aria-sort={isActive ? (currentDir === 'DESC' ? 'descending' : 'ascending') : 'none'}
+      >
+        {label}
+        <span className="sort-indicator" aria-hidden>
+          {isActive ? (currentDir === 'DESC' ? '▼' : '▲') : '⇅'}
+        </span>
+      </button>
+    </th>
   );
 }
 
@@ -543,11 +574,11 @@ export default function RankingsPage() {
                 <tr>
                   <th scope="col">#</th>
                   <th scope="col">Cover</th>
-                  <th scope="col">Title</th>
-                  <th scope="col">Rating</th>
-                  <th scope="col">Playtime</th>
-                  <th scope="col">Price</th>
-                  <th scope="col">Value Score</th>
+                  <SortableHeader label="Title" sortKey="TITLE" currentSort={filters.sort} currentDir={filters.sortDir} onSort={(s, d) => dispatch({ type: 'SET_SORT', sort: s, dir: d })} />
+                  <SortableHeader label="Rating" sortKey="RATING" currentSort={filters.sort} currentDir={filters.sortDir} onSort={(s, d) => dispatch({ type: 'SET_SORT', sort: s, dir: d })} />
+                  <SortableHeader label="Playtime" sortKey="PLAYTIME" currentSort={filters.sort} currentDir={filters.sortDir} onSort={(s, d) => dispatch({ type: 'SET_SORT', sort: s, dir: d })} />
+                  <SortableHeader label="Price" sortKey="PRICE" currentSort={filters.sort} currentDir={filters.sortDir} onSort={(s, d) => dispatch({ type: 'SET_SORT', sort: s, dir: d })} />
+                  <SortableHeader label="Value Score" sortKey="VALUE_SCORE" currentSort={filters.sort} currentDir={filters.sortDir} onSort={(s, d) => dispatch({ type: 'SET_SORT', sort: s, dir: d })} />
                 </tr>
               </thead>
               <tbody>

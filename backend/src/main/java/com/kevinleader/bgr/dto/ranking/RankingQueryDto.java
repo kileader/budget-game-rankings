@@ -13,6 +13,7 @@ public record RankingQueryDto(
         BigDecimal minPlaytimeHours,
         BigDecimal maxPlaytimeHours,
         RankingSort sort,
+        SortDirection sortDirection,
         int offset,
         int limit
 ) {
