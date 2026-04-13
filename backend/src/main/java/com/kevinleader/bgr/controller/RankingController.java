@@ -4,7 +4,10 @@ import com.kevinleader.bgr.dto.ranking.RankingPageDto;
 import com.kevinleader.bgr.dto.ranking.RankingQueryDto;
 import com.kevinleader.bgr.dto.ranking.RankingSort;
 import com.kevinleader.bgr.dto.ranking.SortDirection;
+import com.kevinleader.bgr.dto.ranking.ScoringWeightConstraints;
 import com.kevinleader.bgr.service.RankingService;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -38,9 +41,18 @@ public class RankingController {
             @RequestParam(required = false) BigDecimal minPlaytimeHours,
             @RequestParam(required = false) BigDecimal maxPlaytimeHours,
             @RequestParam(required = false) String title,
-            @RequestParam(required = false) BigDecimal ratingWeight,
-            @RequestParam(required = false) BigDecimal playtimeWeight,
-            @RequestParam(required = false) BigDecimal priceWeight,
+            @RequestParam(required = false)
+            @DecimalMin(value = ScoringWeightConstraints.MIN_STR, inclusive = true)
+            @DecimalMax(value = ScoringWeightConstraints.MAX_STR, inclusive = true)
+            BigDecimal ratingWeight,
+            @RequestParam(required = false)
+            @DecimalMin(value = ScoringWeightConstraints.MIN_STR, inclusive = true)
+            @DecimalMax(value = ScoringWeightConstraints.MAX_STR, inclusive = true)
+            BigDecimal playtimeWeight,
+            @RequestParam(required = false)
+            @DecimalMin(value = ScoringWeightConstraints.MIN_STR, inclusive = true)
+            @DecimalMax(value = ScoringWeightConstraints.MAX_STR, inclusive = true)
+            BigDecimal priceWeight,
             @RequestParam(defaultValue = "false") boolean includeFreeToPlay,
             @RequestParam(defaultValue = "false") boolean includeMultiplayerOnly,
             @RequestParam(defaultValue = "VALUE_SCORE") RankingSort sort,

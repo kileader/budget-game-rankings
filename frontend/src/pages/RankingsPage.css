@@ -277,6 +277,15 @@
   }
 }
 
+.scoring-advanced-hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text);
+  opacity: 0.85;
+  max-width: 42rem;
+}
+
 .scoring-sliders {
   display: flex;
   flex-wrap: wrap;

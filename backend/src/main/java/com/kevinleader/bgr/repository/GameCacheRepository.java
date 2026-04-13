@@ -4,6 +4,7 @@ import com.kevinleader.bgr.entity.GameCache;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,16 +35,26 @@ public interface GameCacheRepository extends JpaRepository<GameCache, Long> {
             """)
     List<GameCache> findAllRankable();
 
-    /** Broader query that includes free and multiplayer-only games (filtered in Java by query flags). */
+    /**
+     * Candidate games for ranking when including free and/or multiplayer-only titles.
+     * When both flags are false, use {@link #findAllRankable()} instead (stricter, smaller set).
+     */
     @Query("""
             SELECT g
             FROM GameCache g
             WHERE g.igdbRating IS NOT NULL
               AND g.igdbRatingCount >= 10
               AND g.hltbHours IS NOT NULL
-              AND (g.isFree = true OR g.cheapsharkPriceCents IS NOT NULL OR g.estimatedPriceCents IS NOT NULL)
+              AND (
+                (g.isFree = false AND g.isMultiplayerOnly = false
+ AND (g.cheapsharkPriceCents IS NOT NULL OR g.estimatedPriceCents IS NOT NULL))
+                OR (:includeFree = true AND g.isFree = true)
+                OR (:includeMultiplayer = true AND g.isMultiplayerOnly = true
+                    AND (g.isFree = true OR g.cheapsharkPriceCents IS NOT NULL OR g.estimatedPriceCents IS NOT NULL))
+              )
             """)
-    List<GameCache> findAllScorable();
+    List<GameCache> findAllForRanking(@Param("includeFree") boolean includeFree,
+                                      @Param("includeMultiplayer") boolean includeMultiplayer);
 
     // RANKABLE CRITERIA — keep in sync with findAllRankable() and findRankableGenres below.
 

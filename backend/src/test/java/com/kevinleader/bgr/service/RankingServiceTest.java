@@ -14,6 +14,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -117,6 +118,27 @@ class RankingServiceTest {
     }
 
     @Test
+    void rejectsScoringWeightsOutsideZeroToTwo() {
+        RankingService service = serviceWithGames();
+
+        assertThatThrownBy(() -> service.getRankingsPage(new RankingQueryDto(
+                null, null, null, null, null, null, null, null,
+                null, new BigDecimal("2.01"), null, null, false, false,
+                RankingSort.VALUE_SCORE, SortDirection.DESC, 0, 100
+        )))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("ratingWeight");
+
+        assertThatThrownBy(() -> service.getRankingsPage(new RankingQueryDto(
+                null, null, null, null, null, null, null, null,
+                null, null, null, new BigDecimal("-0.1"), false, false,
+                RankingSort.VALUE_SCORE, SortDirection.DESC, 0, 100
+        )))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("priceWeight");
+    }
+
+    @Test
     void weightedScoringReducesPlaytimeInfluence() {
         GameCache longGame = buildGame(1L, "Long Game", "80.00", "50.00",
                 2000, null, LocalDate.of(2022, 1, 1), new int[]{130}, new int[]{12});
@@ -147,7 +169,7 @@ class RankingServiceTest {
 
         GameCacheRepository repository = mock(GameCacheRepository.class);
         when(repository.findAllRankable()).thenReturn(List.of(paidGame));
-        when(repository.findAllScorable()).thenReturn(List.of(freeGame, paidGame));
+        when(repository.findAllForRanking(true, false)).thenReturn(List.of(freeGame, paidGame));
         RankingService service = new RankingService(repository);
 
         RankingPageDto excluded = service.getRankingsPage(query(RankingSort.VALUE_SCORE));
@@ -172,7 +194,7 @@ class RankingServiceTest {
 
         GameCacheRepository repository = mock(GameCacheRepository.class);
         when(repository.findAllRankable()).thenReturn(List.of(spGame));
-        when(repository.findAllScorable()).thenReturn(List.of(mpGame, spGame));
+        when(repository.findAllForRanking(false, true)).thenReturn(List.of(mpGame, spGame));
         RankingService service = new RankingService(repository);
 
         RankingPageDto excluded = service.getRankingsPage(query(RankingSort.VALUE_SCORE));
@@ -189,7 +211,7 @@ class RankingServiceTest {
     private RankingService serviceWithGames(GameCache... games) {
         GameCacheRepository repository = mock(GameCacheRepository.class);
         when(repository.findAllRankable()).thenReturn(List.of(games));
-        when(repository.findAllScorable()).thenReturn(List.of(games));
+        when(repository.findAllForRanking(anyBoolean(), anyBoolean())).thenReturn(List.of(games));
         return new RankingService(repository);
     }
 

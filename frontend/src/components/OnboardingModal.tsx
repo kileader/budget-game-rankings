@@ -141,7 +141,7 @@ export default function OnboardingModal({
         {step === 3 && (
           <div className="onboarding-step">
             <h2>Include free-to-play games?</h2>
-            <p className="onboarding-hint">Free games use a different scoring formula (coming soon). For now this filters them in or out.</p>
+            <p className="onboarding-hint">When included, free games are scored with a nominal $1 price so they can appear in value rankings. You can tune weights later under Advanced Scoring on the rankings page.</p>
             <div className="onboarding-toggle-group">
               <button
                 type="button"
@@ -164,7 +164,7 @@ export default function OnboardingModal({
         {step === 4 && (
           <div className="onboarding-step">
             <h2>Include multiplayer-only games?</h2>
-            <p className="onboarding-hint">Multiplayer-only titles don't have a single-player hours-to-beat, so scoring works differently (coming soon).</p>
+            <p className="onboarding-hint">We still use HLTB hours when available. If playtime feels misleading for live-service titles, lower the playtime weight under Advanced Scoring.</p>
             <div className="onboarding-toggle-group">
               <button
                 type="button"

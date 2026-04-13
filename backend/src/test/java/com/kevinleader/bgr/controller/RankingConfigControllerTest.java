@@ -88,6 +88,22 @@ class RankingConfigControllerTest {
     }
 
     @Test
+    void createRejectsScoringWeightOutOfRange() throws Exception {
+        RankingConfigService service = mock(RankingConfigService.class);
+        MockMvc mockMvc = buildMockMvc(service);
+
+        mockMvc.perform(post("/users/me/ranking-configs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "Bad Weights",
+                                  "ratingWeight": 2.5
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void createRejectsMissingName() throws Exception {
         RankingConfigService service = mock(RankingConfigService.class);
         MockMvc mockMvc = buildMockMvc(service);

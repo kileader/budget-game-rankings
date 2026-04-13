@@ -508,6 +508,9 @@ function FilterBar({
       <button type="submit">Apply</button>
       <details className="scoring-advanced">
         <summary>Advanced Scoring</summary>
+        <p className="scoring-advanced-hint">
+          Weights are 0–2 (each raises rating, playtime, or price in the value formula). Click <strong>Apply</strong> after changing sliders to refetch.
+        </p>
         <div className="scoring-sliders">
           <label className="scoring-slider">
             <span>Rating weight: {filters.ratingWeight}</span>

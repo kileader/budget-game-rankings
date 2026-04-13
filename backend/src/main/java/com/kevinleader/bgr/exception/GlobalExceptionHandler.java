@@ -2,6 +2,8 @@ package com.kevinleader.bgr.exception;
 
 import com.kevinleader.bgr.dto.common.ApiErrorDto;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -32,6 +34,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiErrorDto> handleConflict(HttpServletRequest request) {
         return buildError(HttpStatus.CONFLICT, "A record with that value already exists", request.getRequestURI());
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ApiErrorDto> handleConstraintViolation(ConstraintViolationException exception,
+                                                                 HttpServletRequest request) {
+        String message = exception.getConstraintViolations().stream()
+                .map(ConstraintViolation::getMessage)
+                .findFirst()
+                .orElse("Request validation failed");
+        return buildError(HttpStatus.BAD_REQUEST, message, request.getRequestURI());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

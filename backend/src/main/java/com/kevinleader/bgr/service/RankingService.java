@@ -2,6 +2,7 @@ package com.kevinleader.bgr.service;
 
 import com.kevinleader.bgr.dto.ranking.RankingPageDto;
 import com.kevinleader.bgr.dto.ranking.RankingQueryDto;
+import com.kevinleader.bgr.dto.ranking.ScoringWeightConstraints;
 import com.kevinleader.bgr.dto.ranking.RankingResultDto;
 import com.kevinleader.bgr.dto.ranking.RankingSort;
 import com.kevinleader.bgr.dto.ranking.SortDirection;
@@ -42,7 +43,7 @@ public class RankingService {
 
         boolean inclusive = query.includeFreeToPlay() || query.includeMultiplayerOnly();
         List<GameCache> source = inclusive
-                ? gameCacheRepository.findAllScorable()
+                ? gameCacheRepository.findAllForRanking(query.includeFreeToPlay(), query.includeMultiplayerOnly())
                 : gameCacheRepository.findAllRankable();
 
         Comparator<GameCache> comparator = buildComparator(query);
@@ -79,6 +80,21 @@ public class RankingService {
         if (query.minPlaytimeHours() != null && query.maxPlaytimeHours() != null
                 && query.minPlaytimeHours().compareTo(query.maxPlaytimeHours()) > 0) {
             throw new IllegalArgumentException("minPlaytimeHours must be less than or equal to maxPlaytimeHours");
+        }
+        validateWeight("ratingWeight", query.ratingWeight());
+        validateWeight("playtimeWeight", query.playtimeWeight());
+        validateWeight("priceWeight", query.priceWeight());
+    }
+
+    private static void validateWeight(String name, BigDecimal weight) {
+        if (weight == null) {
+            return;
+        }
+        if (weight.compareTo(ScoringWeightConstraints.MIN) < 0
+                || weight.compareTo(ScoringWeightConstraints.MAX) > 0) {
+            throw new IllegalArgumentException(
+                    name + " must be between " + ScoringWeightConstraints.MIN_STR
+                            + " and " + ScoringWeightConstraints.MAX_STR + " inclusive");
         }
     }
 

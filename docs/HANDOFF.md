@@ -27,7 +27,8 @@
 - **Search by title**: `?title=` query param on `GET /rankings` (case-insensitive substring). Frontend text input in FilterBar.
 - **V8 migration**: adds Nintendo Switch 2 (612), iOS (39), Android (34), Meta Quest (385), PSVR2 (390), PC VR (163), PlayStation VR (165) to `platform_ref`.
 - **MultiSelect extracted** to `components/MultiSelect.tsx` with searchable + grouped props.
-- **Scoring weights + free/multiplayer inclusion** (V9): power-law formula `rating^rW * playtime^pW / price^prW` with user-adjustable weights (0.0–2.0). Free games use $1.00 nominal price when included. Multiplayer-only games use existing playtime data. Weight sliders live in a collapsed "Advanced Scoring" section in FilterBar. Include checkboxes in main filter bar. Weights stored in `ranking_config` table and `RankingConfig` DTO. Backend: `findAllScorable()` broader query when either include flag is set; `matchesFilters` handles free/multiplayer exclusion. 43 tests passing.
+- **Scoring weights + free/multiplayer inclusion** (V9): power-law formula `rating^rW * playtime^pW / price^prW` with user-adjustable weights **0.0–2.0** (validated on `GET /rankings` params and saved-config JSON; `RankingService.validateQuery` enforces the same range). Free games use $1.00 nominal price when included. Multiplayer-only games use existing playtime data. Weight sliders in collapsed "Advanced Scoring" (hint to click Apply). Include checkboxes in main filter bar. Weights on `ranking_config`. When either include flag is set, **`findAllForRanking(includeFree, includeMultiplayer)`** loads only the expanded slice (not all free games when only multiplayer is enabled). `ConstraintViolationException` →400 in `GlobalExceptionHandler`.
+- **`GET /metadata/platforms`**: full `platform_ref` ordered by `sort_order` (not only platforms on rankable cached games), so new platforms (e.g. Switch 2) appear in the picker immediately.
 
 ## Files Recently Relevant
 
@@ -43,14 +44,16 @@
 - `backend/.../service/RankingService.java` — title filter in matchesFilters
 - `backend/src/main/resources/db/migration/V8__add_new_platforms.sql` — 7 new platforms
 - `backend/src/main/resources/db/migration/V9__add_scoring_weights_to_ranking_config.sql` — rating/playtime/price weight columns
-- `backend/.../repository/GameCacheRepository.java` — `findAllScorable()` (includes free + multiplayer)
+- `backend/.../dto/ranking/ScoringWeightConstraints.java` — shared 0.0–2.0 bounds
+- `backend/.../repository/GameCacheRepository.java` — `findAllForRanking(includeFree, includeMultiplayer)`
+- `backend/.../repository/PlatformRefRepository.java` + `PlatformRef` entity — platform metadata
 - `backend/.../service/RankingService.java` — weighted `computeValueScore`, `effectivePriceCents`, free/multiplayer filtering
 - `frontend/src/pages/RankingsPage.tsx` — weight sliders (Advanced Scoring), include checkboxes, new reducer actions
 - `frontend/src/pages/RankingsPage.css` — checkbox, scoring slider, advanced details styles
 
 ## Verification
 
-- `backend/mvnw.cmd test` — 43 tests passing (2026-04-12).
+- `backend/mvnw.cmd test` — 45 tests passing (2026-04-12).
 - `frontend/npm run build` passes clean.
 
 ## Open Risks / Notes
