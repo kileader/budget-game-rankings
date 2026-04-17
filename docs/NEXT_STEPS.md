@@ -8,7 +8,8 @@
 
 ## Planned Features
 
-- Game card grid view — cover art grid as alternative to table; Leaf feedback.
+- **Optional shopping assistant** — off by default or gated; user message + rankings/API context first, then retrieval (RAG) over the nightly game cache when token limits or breadth require it. Leaf: treat the DB as the KB.
+- **Game detail page** — card click → dedicated route (pairs with wishlist); Leaf feedback.
 - Wishlist Watchtower — Kevin's reframe: ranking engine stays as core, wishlist + price alerts become the prominent user-facing angle.
 - Sale sniper / price alerts — CheapShark has a price alert API; pairs with wishlist ("alert me when this hits $X") — Hunziboi feedback.
 - Community tagging — "worth at full price" / "wait for sale", Steam-style — Hunziboi feedback; non-trivial scope (DB, UI, moderation), backlog.

@@ -1,5 +1,9 @@
 # Decisions
 
+## 2026-04-14
+
+- **Optional shopping assistant:** ship as an **opt-in** feature. First slice: **runtime context** (current filters + API/ranking payload + user message). Add **retrieval / RAG** over the existing nightly **game cache DB** when answers need broader catalog grounding or context would exceed practical token limits. Nightly refresh + admin resync already match a KB-style cadence.
+
 ## 2026-04-04
 
 - Agent instructions: **`AGENTS.md` is the single source of truth** for handoff/update rules. Root **`CLAUDE.md`** is a short pointer so Claude Code (and similar) still has a conventional entry file without duplicating content.
