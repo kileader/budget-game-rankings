@@ -600,7 +600,7 @@ function FilterBar({
           )}
         </div>
         <span id={searchHintId} className="filter-title-hint">
-          Focus the field to see recent searches; the list filters as you type. Searches run automatically after you pause.
+          Recent searches when focused; list narrows as you type. Applies after a short pause.
         </span>
       </div>
       <MultiSelect
@@ -755,17 +755,20 @@ function ResultRow({
       </td>
       <td>{formatNumber(result.igdbRating)}</td>
       <td>
-        {result.hltbHours !== null ? `${formatNumber(result.hltbHours)} hrs` : '—'}
-        {' · '}
-        <a
-          className="table-external-link"
-          href={hltbSearchUrl(result.title)}
-          target="_blank"
-          rel="noreferrer"
-        >
-          HLTB
-          <span className="sr-only"> (opens in new tab)</span>
-        </a>
+        {result.hltbHours !== null ? (
+          <a
+            className="table-external-link"
+            href={hltbSearchUrl(result.title)}
+            target="_blank"
+            rel="noreferrer"
+            title="HowLongToBeat (opens in new tab)"
+          >
+            {formatNumber(result.hltbHours)} hrs
+            <span className="sr-only"> — HowLongToBeat, opens in new tab</span>
+          </a>
+        ) : (
+          '—'
+        )}
       </td>
       <td>
         {result.cheapsharkDealUrl ? (
@@ -852,6 +855,18 @@ function GameCard({
     <article className="game-card">
       <div className="game-card-cover">
         <span className="game-card-rank">#{rank}</span>
+        <button
+          type="button"
+          className="game-card-dismiss-x"
+          onClick={e => {
+            e.preventDefault();
+            e.stopPropagation();
+            onHide(result.igdbGameId);
+          }}
+          aria-label={`Hide ${result.title} from this list`}
+        >
+          <span aria-hidden>×</span>
+        </button>
         {result.igdbUrl ? (
           <a
             href={result.igdbUrl}
@@ -887,24 +902,22 @@ function GameCard({
               formatPrice(result.priceCents)
             )}
           </span>
-          <span title="Playtime">
-            {result.hltbHours !== null ? `${formatNumber(result.hltbHours)}h` : '—'}
+          <span title={result.hltbHours !== null ? 'HowLongToBeat (opens in new tab)' : 'Playtime'}>
+            {result.hltbHours !== null ? (
+              <a
+                href={hltbSearchUrl(result.title)}
+                target="_blank"
+                rel="noreferrer"
+                className="game-card-stat-link"
+              >
+                {formatNumber(result.hltbHours)}h
+                <span className="sr-only"> — HowLongToBeat, opens in new tab</span>
+              </a>
+            ) : (
+              '—'
+            )}
           </span>
         </div>
-        <div className="game-card-links">
-          <a href={hltbSearchUrl(result.title)} target="_blank" rel="noreferrer">
-            HLTB
-            <span className="sr-only"> (opens in new tab)</span>
-          </a>
-        </div>
-        <button
-          type="button"
-          className="game-card-dismiss"
-          onClick={() => onHide(result.igdbGameId)}
-          aria-label={`Hide ${result.title} from this list`}
-        >
-          No thanks
-        </button>
       </div>
     </article>
   );
