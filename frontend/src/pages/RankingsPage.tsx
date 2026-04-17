@@ -42,6 +42,36 @@ function pushRecentSearch(title: string) {
   saveRecentSearches([t, ...prev]);
 }
 
+const HIDDEN_GAMES_KEY = 'bgr_hidden_games';
+
+function loadHiddenGameIds(): Set<number> {
+  try {
+    const raw = localStorage.getItem(HIDDEN_GAMES_KEY);
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return new Set();
+    const ids = new Set<number>();
+    for (const x of parsed) {
+      if (typeof x === 'number' && Number.isInteger(x) && x > 0) ids.add(x);
+    }
+    return ids;
+  } catch {
+    return new Set();
+  }
+}
+
+function saveHiddenGameIds(ids: Set<number>) {
+  try {
+    localStorage.setItem(HIDDEN_GAMES_KEY, JSON.stringify([...ids].sort((a, b) => a - b)));
+  } catch {
+    /* ignore quota */
+  }
+}
+
+function hltbSearchUrl(title: string): string {
+  return `https://howlongtobeat.com/?q=${encodeURIComponent(title.trim())}`;
+}
+
 /** Natural first-click direction per column. */
 const SORT_DEFAULT_DIR: Record<RankingSort, SortDirection> = {
   VALUE_SCORE: 'DESC',
@@ -691,14 +721,27 @@ function SortableHeader({
 
 type ViewMode = 'grid' | 'table';
 
-function ResultRow({ result, rank }: { result: RankingResult; rank: number }) {
+function ResultRow({
+  result,
+  rank,
+  onHide,
+}: {
+  result: RankingResult;
+  rank: number;
+  onHide: (igdbGameId: number) => void;
+}) {
   return (
     <tr>
       <td>{rank}</td>
       <td>
-        {result.coverImageUrl && (
-          <img src={result.coverImageUrl} alt="" width={40} height={53} loading="lazy" />
-        )}
+        {result.coverImageUrl &&
+          (result.igdbUrl ? (
+            <a href={result.igdbUrl} target="_blank" rel="noreferrer" aria-label={`${result.title} on IGDB (opens in new tab)`}>
+              <img src={result.coverImageUrl} alt="" width={40} height={53} loading="lazy" />
+            </a>
+          ) : (
+            <img src={result.coverImageUrl} alt="" width={40} height={53} loading="lazy" />
+          ))}
       </td>
       <td>
         {result.igdbUrl ? (
@@ -711,7 +754,19 @@ function ResultRow({ result, rank }: { result: RankingResult; rank: number }) {
         )}
       </td>
       <td>{formatNumber(result.igdbRating)}</td>
-      <td>{result.hltbHours !== null ? `${formatNumber(result.hltbHours)} hrs` : '—'}</td>
+      <td>
+        {result.hltbHours !== null ? `${formatNumber(result.hltbHours)} hrs` : '—'}
+        {' · '}
+        <a
+          className="table-external-link"
+          href={hltbSearchUrl(result.title)}
+          target="_blank"
+          rel="noreferrer"
+        >
+          HLTB
+          <span className="sr-only"> (opens in new tab)</span>
+        </a>
+      </td>
       <td>
         {result.cheapsharkDealUrl ? (
           <a href={result.cheapsharkDealUrl} target="_blank" rel="noreferrer">
@@ -722,6 +777,16 @@ function ResultRow({ result, rank }: { result: RankingResult; rank: number }) {
         )}
       </td>
       <td>{formatNumber(result.valueScore, 2)}</td>
+      <td>
+        <button
+          type="button"
+          className="dismiss-game-btn"
+          onClick={() => onHide(result.igdbGameId)}
+          aria-label={`Hide ${result.title} from this list`}
+        >
+          No thanks
+        </button>
+      </td>
     </tr>
   );
 }
@@ -749,7 +814,7 @@ function RankingsTableSkeleton() {
       <table className="rankings-table rankings-table-skeleton">
         <thead>
           <tr>
-            {Array.from({ length: 8 }, (_, i) => (
+            {Array.from({ length: 9 }, (_, i) => (
               <th key={i} scope="col"><span className="skeleton-line skeleton-th skeleton-shimmer" /></th>
             ))}
           </tr>
@@ -757,7 +822,7 @@ function RankingsTableSkeleton() {
         <tbody>
           {Array.from({ length: 10 }, (_, r) => (
             <tr key={r}>
-              {Array.from({ length: 8 }, (_, c) => (
+              {Array.from({ length: 9 }, (_, c) => (
                 <td key={c}><span className="skeleton-line skeleton-td skeleton-shimmer" /></td>
               ))}
             </tr>
@@ -768,15 +833,37 @@ function RankingsTableSkeleton() {
   );
 }
 
-function GameCard({ result, rank }: { result: RankingResult; rank: number }) {
+function GameCard({
+  result,
+  rank,
+  onHide,
+}: {
+  result: RankingResult;
+  rank: number;
+  onHide: (igdbGameId: number) => void;
+}) {
+  const coverInner = result.coverImageUrl ? (
+    <img src={result.coverImageUrl} alt="" loading="lazy" />
+  ) : (
+    <div className="game-card-no-cover" />
+  );
+
   return (
     <article className="game-card">
       <div className="game-card-cover">
         <span className="game-card-rank">#{rank}</span>
-        {result.coverImageUrl ? (
-          <img src={result.coverImageUrl} alt="" loading="lazy" />
+        {result.igdbUrl ? (
+          <a
+            href={result.igdbUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="game-card-cover-link"
+            aria-label={`${result.title} on IGDB (opens in new tab)`}
+          >
+            {coverInner}
+          </a>
         ) : (
-          <div className="game-card-no-cover" />
+          coverInner
         )}
       </div>
       <div className="game-card-body">
@@ -804,6 +891,20 @@ function GameCard({ result, rank }: { result: RankingResult; rank: number }) {
             {result.hltbHours !== null ? `${formatNumber(result.hltbHours)}h` : '—'}
           </span>
         </div>
+        <div className="game-card-links">
+          <a href={hltbSearchUrl(result.title)} target="_blank" rel="noreferrer">
+            HLTB
+            <span className="sr-only"> (opens in new tab)</span>
+          </a>
+        </div>
+        <button
+          type="button"
+          className="game-card-dismiss"
+          onClick={() => onHide(result.igdbGameId)}
+          aria-label={`Hide ${result.title} from this list`}
+        >
+          No thanks
+        </button>
       </div>
     </article>
   );
@@ -856,10 +957,34 @@ export default function RankingsPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [platforms, setPlatforms] = useState<MetadataItem[] | null>(null);
   const [genres, setGenres] = useState<MetadataItem[] | null>(null);
+  const [hiddenIds, setHiddenIds] = useState(loadHiddenGameIds);
 
   useEffect(() => {
     void getPlatforms().then(setPlatforms).catch(() => setPlatforms([]));
     void getGenres().then(setGenres).catch(() => setGenres([]));
+  }, []);
+
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === HIDDEN_GAMES_KEY || e.key === null) setHiddenIds(loadHiddenGameIds());
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
+  const hideGame = useCallback((igdbGameId: number) => {
+    setHiddenIds(prev => {
+      if (prev.has(igdbGameId)) return prev;
+      const next = new Set(prev);
+      next.add(igdbGameId);
+      saveHiddenGameIds(next);
+      return next;
+    });
+  }, []);
+
+  const clearHiddenGames = useCallback(() => {
+    setHiddenIds(new Set());
+    saveHiddenGameIds(new Set());
   }, []);
 
   const prefsRef = useRef(prefs);
@@ -1043,7 +1168,22 @@ export default function RankingsPage() {
         <>
           <div className="results-toolbar">
             <p className="result-count" aria-live="polite">
-              {data ? `${data.total} games` : '…'}
+              {data ? (
+                <>
+                  {data.total} games
+                  {hiddenIds.size > 0 && (
+                    <>
+                      {' · '}
+                      <span className="hidden-count">{hiddenIds.size} hidden</span>
+                      <button type="button" className="clear-hidden-btn" onClick={clearHiddenGames}>
+                        Show hidden
+                      </button>
+                    </>
+                  )}
+                </>
+              ) : (
+                '…'
+              )}
             </p>
             <div className="view-toggle" role="radiogroup" aria-label="View mode">
               <button
@@ -1073,36 +1213,72 @@ export default function RankingsPage() {
             )
           )}
 
-          {!loading && data && (
-            viewMode === 'grid' ? (
-              <div className="game-grid">
-                {data.results.map((result, i) => (
-                  <GameCard key={result.igdbGameId} result={result} rank={offset + i + 1} />
-                ))}
-              </div>
-            ) : (
-              <div className="table-wrapper">
-                <table className="rankings-table">
-                  <thead>
-                    <tr>
-                      <th scope="col">#</th>
-                      <th scope="col">Cover</th>
-                      <SortableHeader label="Title" sortKey="TITLE" currentSort={filters.sort} currentDir={filters.sortDir} onSort={(s, d) => dispatch({ type: 'SET_SORT', sort: s, dir: d })} />
-                      <SortableHeader label="Rating" sortKey="RATING" currentSort={filters.sort} currentDir={filters.sortDir} onSort={(s, d) => dispatch({ type: 'SET_SORT', sort: s, dir: d })} />
-                      <SortableHeader label="Playtime" sortKey="PLAYTIME" currentSort={filters.sort} currentDir={filters.sortDir} onSort={(s, d) => dispatch({ type: 'SET_SORT', sort: s, dir: d })} />
-                      <SortableHeader label="Price" sortKey="PRICE" currentSort={filters.sort} currentDir={filters.sortDir} onSort={(s, d) => dispatch({ type: 'SET_SORT', sort: s, dir: d })} />
-                      <SortableHeader label="Value Score" sortKey="VALUE_SCORE" currentSort={filters.sort} currentDir={filters.sortDir} onSort={(s, d) => dispatch({ type: 'SET_SORT', sort: s, dir: d })} />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.results.map((result, i) => (
-                      <ResultRow key={result.igdbGameId} result={result} rank={offset + i + 1} />
+          {!loading && data && (() => {
+            const visibleRows = data.results
+              .map((result, i) => ({ result, rank: offset + i + 1 }))
+              .filter(({ result }) => !hiddenIds.has(result.igdbGameId));
+            const hiddenOnPage = data.results.length - visibleRows.length;
+
+            return (
+              <>
+                {visibleRows.length === 0 && data.results.length > 0 && (
+                  <p className="status-message" role="status">
+                    Every game on this page is hidden ({hiddenOnPage}).
+                    {' '}
+                    <button type="button" className="clear-hidden-btn" onClick={clearHiddenGames}>
+                      Show all hidden games
+                    </button>
+                    {' '}
+                    or use the next page.
+                  </p>
+                )}
+                {hiddenOnPage > 0 && visibleRows.length > 0 && (
+                  <p className="status-message subtle" role="status">
+                    {hiddenOnPage} hidden on this page ({visibleRows.length} shown).
+                  </p>
+                )}
+                {viewMode === 'grid' ? (
+                  <div className="game-grid">
+                    {visibleRows.map(({ result, rank }) => (
+                      <GameCard
+                        key={result.igdbGameId}
+                        result={result}
+                        rank={rank}
+                        onHide={hideGame}
+                      />
                     ))}
-                  </tbody>
-                </table>
-              </div>
-            )
-          )}
+                  </div>
+                ) : (
+                  <div className="table-wrapper">
+                    <table className="rankings-table">
+                      <thead>
+                        <tr>
+                          <th scope="col">#</th>
+                          <th scope="col">Cover</th>
+                          <SortableHeader label="Title" sortKey="TITLE" currentSort={filters.sort} currentDir={filters.sortDir} onSort={(s, d) => dispatch({ type: 'SET_SORT', sort: s, dir: d })} />
+                          <SortableHeader label="Rating" sortKey="RATING" currentSort={filters.sort} currentDir={filters.sortDir} onSort={(s, d) => dispatch({ type: 'SET_SORT', sort: s, dir: d })} />
+                          <SortableHeader label="Playtime" sortKey="PLAYTIME" currentSort={filters.sort} currentDir={filters.sortDir} onSort={(s, d) => dispatch({ type: 'SET_SORT', sort: s, dir: d })} />
+                          <SortableHeader label="Price" sortKey="PRICE" currentSort={filters.sort} currentDir={filters.sortDir} onSort={(s, d) => dispatch({ type: 'SET_SORT', sort: s, dir: d })} />
+                          <SortableHeader label="Value Score" sortKey="VALUE_SCORE" currentSort={filters.sort} currentDir={filters.sortDir} onSort={(s, d) => dispatch({ type: 'SET_SORT', sort: s, dir: d })} />
+                          <th scope="col" className="col-actions"><span className="sr-only">Hide</span></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {visibleRows.map(({ result, rank }) => (
+                          <ResultRow
+                            key={result.igdbGameId}
+                            result={result}
+                            rank={rank}
+                            onHide={hideGame}
+                          />
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </>
+            );
+          })()}
 
           {!loading && data && (
             <Pagination

@@ -16,10 +16,11 @@
 ## Latest Snapshot
 
 - Date: 2026-04-16
-- **Product direction (2026-04-14):** optional **shopping assistant** (runtime context + user message first; **RAG** over the nightly cache when retrieval is needed). **Game detail** route from grid cards ahead of wishlist. See `docs/NEXT_STEPS.md` Planned Features.
+- **Product direction (2026-04-14):** optional **shopping assistant** (runtime context + user message first; **RAG** over the nightly cache when retrieval is needed). **Game detail** route ahead of wishlist; **"No thanks"** hide list; **card links** — cover + title; **CheapShark** from existing deal URL when present; **HLTB** via search or persisted id (see `docs/NEXT_STEPS.md`).
 - **Vercel:** `@vercel/analytics` + `@vercel/speed-insights` mounted in `frontend/src/main.tsx`. Enable **Web Analytics** and **Speed Insights** for the project in the Vercel dashboard (deployments on Vercel only; local builds are effectively inert).
 - **Rankings UI (Leaf / hybrid filters):** Release year and price use **number inputs only** (no dual-range sliders). **Playtime** keeps **dual-range + min/max inputs**, grouped in a highlighted block. **Title search:** debounced **300ms**, no submit/Enter; **Clear** button; **recent searches** dropdown (localStorage `bgr_search_recent`). **Apply filters** for all other fields. **Grid/table loading:** placeholder **skeletons** instead of “Loading…”. **Game cards:** title area fixed to **two lines** (`min-height` + 2-line clamp + ellipsis).
 - **Rankings polish (2026-04-16):** If title search / pick / clear cannot apply (validation), **title input reverts** to the last applied query title. **Debounced** failure skips the next title effect (no redundant timer). **`SET_SORT`** clears `validationError`. **Search field** no longer advertises incomplete combobox roles; **`aria-describedby`** hint. **`storage`** listener refreshes recent list from other tabs. **`getRankings`** uses **AbortSignal**; rankings effect **aborts** in-flight fetch when `appliedQuery` changes (avoids stale overwrites). **`api.get`** second arg is now `{ token?, signal? }` (`listConfigs` updated).
+- **"No thanks" + card links (frontend):** Hidden game IDs in **`localStorage` key `bgr_hidden_games`**; filter client-side after fetch; toolbar **Show hidden** clears list; `storage` event syncs tabs. **GameCard:** cover links to **IGDB** when `igdbUrl` present; **HLTB** = `howlongtobeat.com/?q=` from title; price still links **CheapShark** when `cheapsharkDealUrl` set. **Table:** cover → IGDB, playtime cell **HLTB** link, **No thanks** column. Empty-page hint if all rows on page hidden.
 - Date: 2026-04-12
 - Branch: `main`
 - HLTB client fixed: endpoint changed from `/api/finder` → `/api/find`; HLTB now requires honeypot headers/body (`hpKey`/`hpVal`) from `/api/find/init`. Client auto-refreshes token on 403. Full resync running via `POST /admin/hltb-resync` (10,642 games, ~91% match rate verified).
@@ -38,7 +39,7 @@
 ## Files Recently Relevant
 
 - `frontend/src/main.tsx` + `frontend/package.json` — Vercel Analytics & Speed Insights
-- `frontend/src/pages/RankingsPage.tsx` + `RankingsPage.css` — hybrid playtime slider, debounced title search, recent list, skeletons, card title height
+- `frontend/src/pages/RankingsPage.tsx` + `RankingsPage.css` — hybrid playtime slider, debounced title search, recent list, skeletons, card title height, hidden games, IGDB cover link, HLTB search link, table actions column
 - `frontend/src/components/OnboardingModal.tsx` + `.css` — 4-step wizard, localStorage helpers
 - `frontend/src/context/OnboardingContext.tsx` — prefs state, modal open/close, upsertMySetup
 - `frontend/src/components/MultiSelect.tsx` + `.css` — extracted, searchable, grouped
@@ -61,7 +62,7 @@
 ## Verification
 
 - `backend/mvnw.cmd test` — 45 tests passing (2026-04-12).
-- `frontend/npm run build` passes clean (2026-04-16).
+- `frontend/npm run build` passes clean (after hide + link pass).
 
 ## Open Risks / Notes
 
@@ -91,4 +92,4 @@ Read or post at [paper.ruixen.app](https://paper.ruixen.app) — give this ID to
 1. **Deploy V8 + V9 migrations** — push to Railway; verify platforms picker and `ranking_config` weight columns.
 2. **Weight persistence in onboarding** — localStorage + "My Setup" saved config.
 3. **Mobile-first CSS pass** — flip `max-width` media queries to `min-width`.
-4. **Planned (not blocking core):** game detail page; optional assistant / RAG slice when ready.
+4. **Planned (not blocking core):** hidden-games "No thanks"; game detail + richer card links (IGDB/HLTB/CheapShark); optional assistant / RAG slice when ready.
