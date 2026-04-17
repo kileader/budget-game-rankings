@@ -16,6 +16,7 @@
 ## Latest Snapshot
 
 - Date: 2026-04-16
+- **Vercel:** `@vercel/analytics` + `@vercel/speed-insights` mounted in `frontend/src/main.tsx`. Enable **Web Analytics** and **Speed Insights** for the project in the Vercel dashboard (deployments on Vercel only; local builds are effectively inert).
 - **Rankings UI (Leaf / hybrid filters):** Release year and price use **number inputs only** (no dual-range sliders). **Playtime** keeps **dual-range + min/max inputs**, grouped in a highlighted block. **Title search:** debounced **300ms**, no submit/Enter; **Clear** button; **recent searches** dropdown (localStorage `bgr_search_recent`). **Apply filters** for all other fields. **Grid/table loading:** placeholder **skeletons** instead of “Loading…”. **Game cards:** title area fixed to **two lines** (`min-height` + 2-line clamp + ellipsis).
 - **Rankings polish (2026-04-16):** If title search / pick / clear cannot apply (validation), **title input reverts** to the last applied query title. **Debounced** failure skips the next title effect (no redundant timer). **`SET_SORT`** clears `validationError`. **Search field** no longer advertises incomplete combobox roles; **`aria-describedby`** hint. **`storage`** listener refreshes recent list from other tabs. **`getRankings`** uses **AbortSignal**; rankings effect **aborts** in-flight fetch when `appliedQuery` changes (avoids stale overwrites). **`api.get`** second arg is now `{ token?, signal? }` (`listConfigs` updated).
 - Date: 2026-04-12
@@ -35,6 +36,7 @@
 
 ## Files Recently Relevant
 
+- `frontend/src/main.tsx` + `frontend/package.json` — Vercel Analytics & Speed Insights
 - `frontend/src/pages/RankingsPage.tsx` + `RankingsPage.css` — hybrid playtime slider, debounced title search, recent list, skeletons, card title height
 - `frontend/src/components/OnboardingModal.tsx` + `.css` — 4-step wizard, localStorage helpers
 - `frontend/src/context/OnboardingContext.tsx` — prefs state, modal open/close, upsertMySetup
