@@ -1,7 +1,7 @@
 import { api } from './client';
 import type { RankingPage, RankingQuery } from '../types';
 
-export function getRankings(query: RankingQuery = {}): Promise<RankingPage> {
+export function getRankings(query: RankingQuery = {}, signal?: AbortSignal): Promise<RankingPage> {
   const params = new URLSearchParams();
 
   if (query.platformIds?.length) query.platformIds.forEach(id => params.append('platformIds', String(id)));
@@ -24,5 +24,5 @@ export function getRankings(query: RankingQuery = {}): Promise<RankingPage> {
   if (query.limit !== undefined) params.set('limit', String(query.limit));
 
   const qs = params.toString();
-  return api.get<RankingPage>(`/rankings${qs ? `?${qs}` : ''}`);
+  return api.get<RankingPage>(`/rankings${qs ? `?${qs}` : ''}`, { signal });
 }

@@ -2,7 +2,7 @@ import { api } from './client';
 import type { RankingConfig, RankingConfigRequest } from '../types';
 
 export function listConfigs(token: string): Promise<RankingConfig[]> {
-  return api.get<RankingConfig[]>('/users/me/ranking-configs', token);
+  return api.get<RankingConfig[]>('/users/me/ranking-configs', { token });
 }
 
 export function createConfig(body: RankingConfigRequest, token: string): Promise<RankingConfig> {

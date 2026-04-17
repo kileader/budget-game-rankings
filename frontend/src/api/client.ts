@@ -31,10 +31,11 @@ type RequestOptions = {
   method?: string;
   body?: unknown;
   token?: string;
+  signal?: AbortSignal;
 };
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { method = 'GET', body, token } = options;
+  const { method = 'GET', body, token, signal } = options;
 
   const headers: Record<string, string> = {};
 
@@ -50,6 +51,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     method,
     headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
+    signal,
   });
 
   if (!response.ok) {
@@ -67,7 +69,8 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 }
 
 export const api = {
-  get: <T>(path: string, token?: string) => request<T>(path, { token }),
+  get: <T>(path: string, options?: { token?: string; signal?: AbortSignal }) =>
+    request<T>(path, { token: options?.token, signal: options?.signal }),
   post: <T>(path: string, body: unknown, token?: string) => request<T>(path, { method: 'POST', body, token }),
   put: <T>(path: string, body: unknown, token?: string) => request<T>(path, { method: 'PUT', body, token }),
   patch: <T>(path: string, body: unknown, token?: string) => request<T>(path, { method: 'PATCH', body, token }),

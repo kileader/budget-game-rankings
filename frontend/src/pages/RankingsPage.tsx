@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useCallback, useState, useRef } from 'react';
+import { useEffect, useReducer, useCallback, useState, useRef, useId } from 'react';
 import './RankingsPage.css';
 import { getRankings } from '../api/rankings';
 import { getPlatforms, getGenres } from '../api/metadata';
@@ -11,6 +11,36 @@ import MultiSelect from '../components/MultiSelect';
 import type { MetadataItem, OnboardingPrefs, RankingConfig, RankingPage, RankingQuery, RankingResult, RankingSort, SortDirection } from '../types';
 
 const PAGE_LIMIT = 50;
+
+const RECENT_SEARCHES_KEY = 'bgr_search_recent';
+const RECENT_SEARCHES_MAX = 8;
+
+function loadRecentSearches(): string[] {
+  try {
+    const raw = localStorage.getItem(RECENT_SEARCHES_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((x): x is string => typeof x === 'string').slice(0, RECENT_SEARCHES_MAX);
+  } catch {
+    return [];
+  }
+}
+
+function saveRecentSearches(entries: string[]) {
+  try {
+    localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(entries.slice(0, RECENT_SEARCHES_MAX)));
+  } catch {
+    /* ignore quota */
+  }
+}
+
+function pushRecentSearch(title: string) {
+  const t = title.trim();
+  if (!t) return;
+  const prev = loadRecentSearches().filter(s => s.toLowerCase() !== t.toLowerCase());
+  saveRecentSearches([t, ...prev]);
+}
 
 /** Natural first-click direction per column. */
 const SORT_DEFAULT_DIR: Record<RankingSort, SortDirection> = {
@@ -49,7 +79,10 @@ type State = {
   offset: number;
   data: RankingPage | null;
   loading: boolean;
+  /** API / network failure (hides results). */
   error: string | null;
+  /** Client-side filter validation (results may still show). */
+  validationError: string | null;
 };
 
 type FilterField = keyof Omit<Filters, 'platformIds' | 'genreIds' | 'sort' | 'sortDir' | 'title' | 'ratingWeight' | 'playtimeWeight' | 'priceWeight' | 'includeFreeToPlay' | 'includeMultiplayerOnly'>;
@@ -243,40 +276,57 @@ function reducer(state: State, action: Action): State {
         ...state,
         filters: { ...state.filters, [action.field]: action.value },
         error: null,
+        validationError: null,
       };
     case 'SET_TITLE':
       return {
         ...state,
         filters: { ...state.filters, title: action.value },
         error: null,
+        validationError: null,
       };
     case 'SET_WEIGHT':
       return {
         ...state,
         filters: { ...state.filters, [action.field]: action.value },
         error: null,
+        validationError: null,
       };
     case 'SET_INCLUDE':
       return {
         ...state,
         filters: { ...state.filters, [action.field]: action.value },
         error: null,
+        validationError: null,
       };
     case 'SET_MULTI_FILTER':
       return {
         ...state,
         filters: { ...state.filters, [action.field]: action.ids },
         error: null,
+        validationError: null,
       };
     case 'SET_SORT': {
       const newFilters = { ...state.filters, sort: action.sort, sortDir: action.dir };
-      return { ...state, filters: newFilters, offset: 0, appliedQuery: filtersToQuery(newFilters, 0) };
+      return {
+        ...state,
+        filters: newFilters,
+        offset: 0,
+        appliedQuery: filtersToQuery(newFilters, 0),
+        validationError: null,
+      };
     }
     case 'APPLY_FILTERS':
       return { ...state, offset: 0, appliedQuery: filtersToQuery(state.filters, 0) };
     case 'LOAD_CONFIG': {
       const filters = configToFilters(action.config);
-      return { ...state, filters, offset: 0, appliedQuery: filtersToQuery(filters, 0) };
+      return {
+        ...state,
+        filters,
+        offset: 0,
+        appliedQuery: filtersToQuery(filters, 0),
+        validationError: null,
+      };
     }
     case 'SET_OFFSET':
       return { ...state, offset: action.offset, appliedQuery: filtersToQuery(state.filters, action.offset) };
@@ -287,10 +337,16 @@ function reducer(state: State, action: Action): State {
     case 'FETCH_ERROR':
       return { ...state, loading: false, error: action.error, data: null };
     case 'SET_VALIDATION_ERROR':
-      return { ...state, error: action.error };
+      return { ...state, validationError: action.error };
     case 'APPLY_ONBOARDING': {
       const filters = filtersFromOnboarding(action.prefs);
-      return { ...state, filters, offset: 0, appliedQuery: filtersToQuery(filters, 0) };
+      return {
+        ...state,
+        filters,
+        offset: 0,
+        appliedQuery: filtersToQuery(filters, 0),
+        validationError: null,
+      };
     }
     default:
       return state;
@@ -306,6 +362,7 @@ function buildInitialState(prefs: OnboardingPrefs | null): State {
     data: null,
     loading: false,
     error: null,
+    validationError: null,
   };
 }
 
@@ -391,6 +448,8 @@ function FilterBar({
   onFilterChange,
   onMultiFilterChange,
   onTitleChange,
+  onTitlePick,
+  onTitleClear,
   onWeightChange,
   onIncludeChange,
   onApply,
@@ -401,10 +460,17 @@ function FilterBar({
   onFilterChange: (field: FilterField, value: string) => void;
   onMultiFilterChange: (field: 'platformIds' | 'genreIds', ids: number[]) => void;
   onTitleChange: (value: string) => void;
+  onTitlePick: (value: string) => void;
+  onTitleClear: () => void;
   onWeightChange: (field: WeightField, value: string) => void;
   onIncludeChange: (field: IncludeField, value: boolean) => void;
   onApply: () => void;
 }) {
+  const searchHintId = useId();
+  const [recentOpen, setRecentOpen] = useState(false);
+  const [recentList, setRecentList] = useState<string[]>(() => loadRecentSearches());
+  const searchWrapRef = useRef<HTMLDivElement>(null);
+
   function field(label: string, key: FilterField, placeholder: string) {
     return (
       <div className="filter-field">
@@ -420,21 +486,92 @@ function FilterBar({
     );
   }
 
+  const currentYear = new Date().getFullYear();
+  const q = filters.title.trim().toLowerCase();
+  const suggestedRecent = recentList.filter(
+    s => !q || s.toLowerCase().includes(q),
+  ).slice(0, 8);
+
+  useEffect(() => {
+    function onDocMouseDown(e: MouseEvent) {
+      if (!searchWrapRef.current?.contains(e.target as Node)) {
+        setRecentOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', onDocMouseDown);
+    return () => document.removeEventListener('mousedown', onDocMouseDown);
+  }, []);
+
+  useEffect(() => {
+    function onStorage(e: StorageEvent) {
+      if (e.key === RECENT_SEARCHES_KEY || e.key === null) {
+        setRecentList(loadRecentSearches());
+      }
+    }
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
   return (
     <form
       className="filter-bar"
-      onSubmit={e => { e.preventDefault(); onApply(); }}
+      onSubmit={e => { e.preventDefault(); }}
       aria-label="Ranking filters"
     >
-      <div className="filter-field filter-title-field">
+      <div className="filter-field filter-title-field" ref={searchWrapRef}>
         <label htmlFor="filter-title">Search</label>
-        <input
-          id="filter-title"
-          type="text"
-          placeholder="Game title…"
-          value={filters.title}
-          onChange={e => onTitleChange(e.target.value)}
-        />
+        <div className="filter-title-row">
+          <div className="filter-title-input-wrap">
+            <input
+              id="filter-title"
+              type="text"
+              autoComplete="off"
+              aria-describedby={searchHintId}
+              placeholder="Game title…"
+              value={filters.title}
+              onChange={e => onTitleChange(e.target.value)}
+              onFocus={() => {
+                setRecentList(loadRecentSearches());
+                setRecentOpen(true);
+              }}
+              onBlur={() => {
+                // allow mousedown on list option before close (handled via document listener)
+              }}
+            />
+            {recentOpen && suggestedRecent.length > 0 && (
+              <ul className="search-recent-list" aria-label="Recent searches">
+                {suggestedRecent.map(s => (
+                  <li key={s}>
+                    <button
+                      type="button"
+                      className="search-recent-item"
+                      onMouseDown={e => e.preventDefault()}
+                      onClick={() => {
+                        onTitlePick(s);
+                        setRecentOpen(false);
+                      }}
+                    >
+                      {s}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          {filters.title.length > 0 && (
+            <button
+              type="button"
+              className="filter-title-clear"
+              onClick={onTitleClear}
+              aria-label="Clear search"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+        <span id={searchHintId} className="filter-title-hint">
+          Focus the field to see recent searches; the list filters as you type. Searches run automatically after you pause.
+        </span>
       </div>
       <MultiSelect
         label="Platform"
@@ -450,31 +587,12 @@ function FilterBar({
       />
       <div className="filter-group">
         <span className="filter-group-label">Release Year</span>
-        <DualRangeSlider
-          rangeMin={1980} rangeMax={new Date().getFullYear()} step={1}
-          valueMin={filters.releaseYearMin} valueMax={filters.releaseYearMax}
-          onChangeMin={v => onFilterChange('releaseYearMin', v)}
-          onChangeMax={v => onFilterChange('releaseYearMax', v)}
-        />
-        <div className="filter-group-inputs">
+        <div className="filter-group-inputs filter-group-inputs-only">
           {field('From', 'releaseYearMin', '1980')}
-          {field('To', 'releaseYearMax', String(new Date().getFullYear()))}
+          {field('To', 'releaseYearMax', String(currentYear))}
         </div>
       </div>
-      <div className="filter-group">
-        <span className="filter-group-label">Price ($)</span>
-        <DualRangeSlider
-          rangeMin={0} rangeMax={100} step={1}
-          valueMin={filters.minPriceDollars} valueMax={filters.maxPriceDollars}
-          onChangeMin={v => onFilterChange('minPriceDollars', v)}
-          onChangeMax={v => onFilterChange('maxPriceDollars', v)}
-        />
-        <div className="filter-group-inputs">
-          {field('Min', 'minPriceDollars', '0')}
-          {field('Max', 'maxPriceDollars', '100')}
-        </div>
-      </div>
-      <div className="filter-group">
+      <div className="filter-group filter-group-playtime">
         <span className="filter-group-label">Playtime (hrs)</span>
         <DualRangeSlider
           rangeMin={0} rangeMax={200} step={5}
@@ -482,9 +600,16 @@ function FilterBar({
           onChangeMin={v => onFilterChange('minPlaytimeHours', v)}
           onChangeMax={v => onFilterChange('maxPlaytimeHours', v)}
         />
-        <div className="filter-group-inputs">
+        <div className="filter-group-inputs filter-group-inputs-only">
           {field('Min', 'minPlaytimeHours', '0')}
           {field('Max', 'maxPlaytimeHours', '200')}
+        </div>
+      </div>
+      <div className="filter-group">
+        <span className="filter-group-label">Price ($)</span>
+        <div className="filter-group-inputs filter-group-inputs-only">
+          {field('Min', 'minPriceDollars', '0')}
+          {field('Max', 'maxPriceDollars', '100')}
         </div>
       </div>
       <div className="filter-include-group">
@@ -505,11 +630,11 @@ function FilterBar({
           Include multiplayer-only
         </label>
       </div>
-      <button type="submit">Apply</button>
+      <button type="button" className="filter-apply-btn" onClick={onApply}>Apply filters</button>
       <details className="scoring-advanced">
         <summary>Advanced Scoring</summary>
         <p className="scoring-advanced-hint">
-          Weights are 0–2 (each raises rating, playtime, or price in the value formula). Click <strong>Apply</strong> after changing sliders to refetch.
+          Weights are 0–2 (each raises rating, playtime, or price in the value formula). Click <strong>Apply filters</strong> after changing weights to refetch.
         </p>
         <div className="scoring-sliders">
           <label className="scoring-slider">
@@ -601,6 +726,48 @@ function ResultRow({ result, rank }: { result: RankingResult; rank: number }) {
   );
 }
 
+function GameCardSkeleton() {
+  return (
+    <article className="game-card game-card-skeleton" aria-hidden>
+      <div className="game-card-cover skeleton-shimmer" />
+      <div className="game-card-body">
+        <div className="skeleton-line skeleton-title-block skeleton-shimmer" />
+        <div className="skeleton-line skeleton-score-block skeleton-shimmer" />
+        <div className="skeleton-line skeleton-label-block skeleton-shimmer" />
+        <div className="skeleton-stats skeleton-shimmer" />
+      </div>
+    </article>
+  );
+}
+
+const GRID_SKELETON_COUNT = 16;
+const TITLE_SEARCH_DEBOUNCE_MS = 300;
+
+function RankingsTableSkeleton() {
+  return (
+    <div className="table-wrapper rankings-table-skeleton-wrap" aria-hidden>
+      <table className="rankings-table rankings-table-skeleton">
+        <thead>
+          <tr>
+            {Array.from({ length: 8 }, (_, i) => (
+              <th key={i} scope="col"><span className="skeleton-line skeleton-th skeleton-shimmer" /></th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {Array.from({ length: 10 }, (_, r) => (
+            <tr key={r}>
+              {Array.from({ length: 8 }, (_, c) => (
+                <td key={c}><span className="skeleton-line skeleton-td skeleton-shimmer" /></td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function GameCard({ result, rank }: { result: RankingResult; rank: number }) {
   return (
     <article className="game-card">
@@ -684,7 +851,7 @@ export default function RankingsPage() {
   const { token, isLoggedIn } = useAuth();
   const { prefs } = useOnboarding();
   const [state, dispatch] = useReducer(reducer, prefs, buildInitialState);
-  const { filters, appliedQuery, offset, data, loading, error } = state;
+  const { filters, appliedQuery, offset, data, loading, error, validationError } = state;
 
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [platforms, setPlatforms] = useState<MetadataItem[] | null>(null);
@@ -703,19 +870,105 @@ export default function RankingsPage() {
     prefsRef.current = prefs;
   }, [prefs]);
 
-  const fetchData = useCallback(async () => {
-    dispatch({ type: 'FETCH_START' });
-    try {
-      const result = await getRankings(appliedQuery);
-      dispatch({ type: 'FETCH_SUCCESS', data: result });
-    } catch (e) {
-      const message =
-        e instanceof ApiError ? e.message : 'Failed to load rankings.';
-      dispatch({ type: 'FETCH_ERROR', error: message });
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
+
+  const appliedQueryRef = useRef(appliedQuery);
+  appliedQueryRef.current = appliedQuery;
+
+  const titleDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const skipInitialTitleDebounceRef = useRef(true);
+  const ignoreNextTitleDebounceRef = useRef(false);
+
+  const clearTitleDebounceTimer = useCallback(() => {
+    if (titleDebounceTimerRef.current !== null) {
+      clearTimeout(titleDebounceTimerRef.current);
+      titleDebounceTimerRef.current = null;
     }
+  }, []);
+
+  useEffect(() => {
+    const ac = new AbortController();
+    dispatch({ type: 'FETCH_START' });
+    void getRankings(appliedQuery, ac.signal)
+      .then(result => {
+        dispatch({ type: 'FETCH_SUCCESS', data: result });
+      })
+      .catch(e => {
+        if (ac.signal.aborted) return;
+        const message =
+          e instanceof ApiError ? e.message : 'Failed to load rankings.';
+        dispatch({ type: 'FETCH_ERROR', error: message });
+      });
+    return () => ac.abort();
   }, [appliedQuery]);
 
-  useEffect(() => { void fetchData(); }, [fetchData]);
+  useEffect(() => {
+    if (skipInitialTitleDebounceRef.current) {
+      skipInitialTitleDebounceRef.current = false;
+      return;
+    }
+    if (ignoreNextTitleDebounceRef.current) {
+      ignoreNextTitleDebounceRef.current = false;
+      return;
+    }
+    clearTitleDebounceTimer();
+    titleDebounceTimerRef.current = setTimeout(() => {
+      titleDebounceTimerRef.current = null;
+      const f = filtersRef.current;
+      const err = validateFilters(f);
+      if (err) {
+        dispatch({ type: 'SET_VALIDATION_ERROR', error: err });
+        const lastTitle = appliedQueryRef.current.title ?? '';
+        if (f.title !== lastTitle) {
+          ignoreNextTitleDebounceRef.current = true;
+          dispatch({ type: 'SET_TITLE', value: lastTitle });
+        }
+        return;
+      }
+      dispatch({ type: 'SET_VALIDATION_ERROR', error: null });
+      dispatch({ type: 'APPLY_FILTERS' });
+      const t = f.title.trim();
+      if (t) pushRecentSearch(t);
+    }, TITLE_SEARCH_DEBOUNCE_MS);
+    return () => {
+      clearTitleDebounceTimer();
+    };
+  }, [filters.title, clearTitleDebounceTimer]);
+
+  const handleTitlePick = useCallback(
+    (s: string) => {
+      clearTitleDebounceTimer();
+      ignoreNextTitleDebounceRef.current = true;
+      const f = { ...filtersRef.current, title: s };
+      const err = validateFilters(f);
+      if (err) {
+        dispatch({ type: 'SET_VALIDATION_ERROR', error: err });
+        dispatch({ type: 'SET_TITLE', value: appliedQueryRef.current.title ?? '' });
+        return;
+      }
+      dispatch({ type: 'SET_VALIDATION_ERROR', error: null });
+      dispatch({ type: 'SET_TITLE', value: s });
+      dispatch({ type: 'APPLY_FILTERS' });
+      pushRecentSearch(s);
+    },
+    [clearTitleDebounceTimer, dispatch],
+  );
+
+  const handleTitleClear = useCallback(() => {
+    clearTitleDebounceTimer();
+    ignoreNextTitleDebounceRef.current = true;
+    const f = { ...filtersRef.current, title: '' };
+    const err = validateFilters(f);
+    if (err) {
+      dispatch({ type: 'SET_VALIDATION_ERROR', error: err });
+      dispatch({ type: 'SET_TITLE', value: appliedQueryRef.current.title ?? '' });
+      return;
+    }
+    dispatch({ type: 'SET_VALIDATION_ERROR', error: null });
+    dispatch({ type: 'SET_TITLE', value: '' });
+    dispatch({ type: 'APPLY_FILTERS' });
+  }, [clearTitleDebounceTimer, dispatch]);
 
   async function handleSaveConfig(name: string) {
     if (!token) return;
@@ -765,9 +1018,12 @@ export default function RankingsPage() {
         onFilterChange={(field, value) => dispatch({ type: 'SET_FILTER', field, value })}
         onMultiFilterChange={(field, ids) => dispatch({ type: 'SET_MULTI_FILTER', field, ids })}
         onTitleChange={value => dispatch({ type: 'SET_TITLE', value })}
+        onTitlePick={handleTitlePick}
+        onTitleClear={handleTitleClear}
         onWeightChange={(field, value) => dispatch({ type: 'SET_WEIGHT', field, value })}
         onIncludeChange={(field, value) => dispatch({ type: 'SET_INCLUDE', field, value })}
         onApply={() => {
+          clearTitleDebounceTimer();
           const err = validateFilters(filters);
           if (err) {
             dispatch({ type: 'SET_VALIDATION_ERROR', error: err });
@@ -778,13 +1034,17 @@ export default function RankingsPage() {
         }}
       />
 
-      {loading && <p className="status-message" role="status">Loading...</p>}
       {error && <p className="status-message error" role="alert">{error}</p>}
+      {validationError && (
+        <p className="status-message error" role="alert">{validationError}</p>
+      )}
 
-      {data && !loading && (
+      {(data || loading) && !error && (
         <>
           <div className="results-toolbar">
-            <p className="result-count" aria-live="polite">{data.total} games</p>
+            <p className="result-count" aria-live="polite">
+              {data ? `${data.total} games` : '…'}
+            </p>
             <div className="view-toggle" role="radiogroup" aria-label="View mode">
               <button
                 className={viewMode === 'grid' ? 'active' : ''}
@@ -801,41 +1061,57 @@ export default function RankingsPage() {
             </div>
           </div>
 
-          {viewMode === 'grid' ? (
-            <div className="game-grid">
-              {data.results.map((result, i) => (
-                <GameCard key={result.igdbGameId} result={result} rank={offset + i + 1} />
-              ))}
-            </div>
-          ) : (
-            <div className="table-wrapper">
-              <table className="rankings-table">
-                <thead>
-                  <tr>
-                    <th scope="col">#</th>
-                    <th scope="col">Cover</th>
-                    <SortableHeader label="Title" sortKey="TITLE" currentSort={filters.sort} currentDir={filters.sortDir} onSort={(s, d) => dispatch({ type: 'SET_SORT', sort: s, dir: d })} />
-                    <SortableHeader label="Rating" sortKey="RATING" currentSort={filters.sort} currentDir={filters.sortDir} onSort={(s, d) => dispatch({ type: 'SET_SORT', sort: s, dir: d })} />
-                    <SortableHeader label="Playtime" sortKey="PLAYTIME" currentSort={filters.sort} currentDir={filters.sortDir} onSort={(s, d) => dispatch({ type: 'SET_SORT', sort: s, dir: d })} />
-                    <SortableHeader label="Price" sortKey="PRICE" currentSort={filters.sort} currentDir={filters.sortDir} onSort={(s, d) => dispatch({ type: 'SET_SORT', sort: s, dir: d })} />
-                    <SortableHeader label="Value Score" sortKey="VALUE_SCORE" currentSort={filters.sort} currentDir={filters.sortDir} onSort={(s, d) => dispatch({ type: 'SET_SORT', sort: s, dir: d })} />
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.results.map((result, i) => (
-                    <ResultRow key={result.igdbGameId} result={result} rank={offset + i + 1} />
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          {loading && (
+            viewMode === 'grid' ? (
+              <div className="game-grid">
+                {Array.from({ length: GRID_SKELETON_COUNT }, (_, i) => (
+                  <GameCardSkeleton key={i} />
+                ))}
+              </div>
+            ) : (
+              <RankingsTableSkeleton />
+            )
           )}
 
-          <Pagination
-            offset={offset}
-            limit={PAGE_LIMIT}
-            total={data.total}
-            onPage={newOffset => dispatch({ type: 'SET_OFFSET', offset: newOffset })}
-          />
+          {!loading && data && (
+            viewMode === 'grid' ? (
+              <div className="game-grid">
+                {data.results.map((result, i) => (
+                  <GameCard key={result.igdbGameId} result={result} rank={offset + i + 1} />
+                ))}
+              </div>
+            ) : (
+              <div className="table-wrapper">
+                <table className="rankings-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">#</th>
+                      <th scope="col">Cover</th>
+                      <SortableHeader label="Title" sortKey="TITLE" currentSort={filters.sort} currentDir={filters.sortDir} onSort={(s, d) => dispatch({ type: 'SET_SORT', sort: s, dir: d })} />
+                      <SortableHeader label="Rating" sortKey="RATING" currentSort={filters.sort} currentDir={filters.sortDir} onSort={(s, d) => dispatch({ type: 'SET_SORT', sort: s, dir: d })} />
+                      <SortableHeader label="Playtime" sortKey="PLAYTIME" currentSort={filters.sort} currentDir={filters.sortDir} onSort={(s, d) => dispatch({ type: 'SET_SORT', sort: s, dir: d })} />
+                      <SortableHeader label="Price" sortKey="PRICE" currentSort={filters.sort} currentDir={filters.sortDir} onSort={(s, d) => dispatch({ type: 'SET_SORT', sort: s, dir: d })} />
+                      <SortableHeader label="Value Score" sortKey="VALUE_SCORE" currentSort={filters.sort} currentDir={filters.sortDir} onSort={(s, d) => dispatch({ type: 'SET_SORT', sort: s, dir: d })} />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.results.map((result, i) => (
+                      <ResultRow key={result.igdbGameId} result={result} rank={offset + i + 1} />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )
+          )}
+
+          {!loading && data && (
+            <Pagination
+              offset={offset}
+              limit={PAGE_LIMIT}
+              total={data.total}
+              onPage={newOffset => dispatch({ type: 'SET_OFFSET', offset: newOffset })}
+            />
+          )}
         </>
       )}
     </div>
