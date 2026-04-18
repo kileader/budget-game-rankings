@@ -206,6 +206,7 @@ public class RankingService {
         Integer priceCents = effectivePriceCents(game, query.includeFreeToPlay());
         BigDecimal valueScore = computeValueScore(game, query);
 
+        int[] platformIds = game.getPlatformIds() != null ? game.getPlatformIds() : new int[0];
         return new RankingResultDto(
                 game.getIgdbGameId(),
                 game.getTitle(),
@@ -216,7 +217,8 @@ public class RankingService {
                 game.getCoverImageUrl(),
                 game.getIgdbUrl(),
                 game.getCheapsharkDealUrl(),
-                game.getSteamAppId()
+                game.getSteamAppId(),
+                platformIds
         );
     }
 

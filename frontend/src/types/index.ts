@@ -19,6 +19,8 @@ export type RankingResult = {
   cheapsharkDealUrl: string | null;
   /** Present when backend has a Steam listing; omitted on older API responses. */
   steamAppId?: number | null;
+  /** IGDB platform IDs; resolve names via `/metadata/platforms`. */
+  platformIds?: number[];
 };
 
 export type RankingPage = {

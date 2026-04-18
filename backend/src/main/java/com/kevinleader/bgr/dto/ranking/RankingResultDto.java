@@ -12,6 +12,7 @@ public record RankingResultDto(
         String coverImageUrl,
         String igdbUrl,
         String cheapsharkDealUrl,
-        Integer steamAppId
+        Integer steamAppId,
+        int[] platformIds
 ) {
 }

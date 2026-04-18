@@ -91,6 +91,18 @@ function primaryCoverAriaLabel(result: RankingResult): string {
   return '';
 }
 
+/** Order platforms like the filter catalog (API sort_order); unknown IDs last. */
+function formatPlatformLabels(ids: number[] | undefined, catalog: MetadataItem[] | null): string {
+  const list = ids?.length ? ids : [];
+  if (list.length === 0) return '—';
+  if (!catalog || catalog.length === 0) return list.map(String).join(', ');
+  const order = new Map(catalog.map((p, i) => [p.id, i]));
+  const sorted = [...list].sort((a, b) => (order.get(a) ?? 99999) - (order.get(b) ?? 99999));
+  return sorted
+    .map(id => catalog.find(p => p.id === id)?.name ?? `ID ${id}`)
+    .join(', ');
+}
+
 /** Natural first-click direction per column. */
 const SORT_DEFAULT_DIR: Record<RankingSort, SortDirection> = {
   VALUE_SCORE: 'DESC',
@@ -744,10 +756,12 @@ function ResultRow({
   result,
   rank,
   onHide,
+  platformsCatalog,
 }: {
   result: RankingResult;
   rank: number;
   onHide: (igdbGameId: number) => void;
+  platformsCatalog: MetadataItem[] | null;
 }) {
   return (
     <tr>
@@ -775,6 +789,7 @@ function ResultRow({
           result.title
         )}
       </td>
+      <td className="col-platforms">{formatPlatformLabels(result.platformIds, platformsCatalog)}</td>
       <td>{formatNumber(result.igdbRating)}</td>
       <td>
         {result.hltbHours !== null ? (
@@ -825,6 +840,7 @@ function GameCardSkeleton() {
         <div className="skeleton-line skeleton-score-block skeleton-shimmer" />
         <div className="skeleton-line skeleton-label-block skeleton-shimmer" />
         <div className="skeleton-stats skeleton-shimmer" />
+        <div className="skeleton-line skeleton-platforms skeleton-shimmer" />
       </div>
     </article>
   );
@@ -839,7 +855,7 @@ function RankingsTableSkeleton() {
       <table className="rankings-table rankings-table-skeleton">
         <thead>
           <tr>
-            {Array.from({ length: 9 }, (_, i) => (
+            {Array.from({ length: 10 }, (_, i) => (
               <th key={i} scope="col"><span className="skeleton-line skeleton-th skeleton-shimmer" /></th>
             ))}
           </tr>
@@ -847,7 +863,7 @@ function RankingsTableSkeleton() {
         <tbody>
           {Array.from({ length: 10 }, (_, r) => (
             <tr key={r}>
-              {Array.from({ length: 9 }, (_, c) => (
+              {Array.from({ length: 10 }, (_, c) => (
                 <td key={c}><span className="skeleton-line skeleton-td skeleton-shimmer" /></td>
               ))}
             </tr>
@@ -862,16 +878,19 @@ function GameCard({
   result,
   rank,
   onHide,
+  platformsCatalog,
 }: {
   result: RankingResult;
   rank: number;
   onHide: (igdbGameId: number) => void;
+  platformsCatalog: MetadataItem[] | null;
 }) {
   const coverInner = result.coverImageUrl ? (
     <img src={result.coverImageUrl} alt="" loading="lazy" />
   ) : (
     <div className="game-card-no-cover" />
   );
+  const platformLine = formatPlatformLabels(result.platformIds, platformsCatalog);
 
   return (
     <article className="game-card">
@@ -943,6 +962,12 @@ function GameCard({
             )}
           </span>
         </div>
+        <p
+          className="game-card-platforms"
+          title={platformLine === '—' ? undefined : `Platforms (IGDB): ${platformLine}`}
+        >
+          {platformLine}
+        </p>
       </div>
     </article>
   );
@@ -1293,6 +1318,7 @@ export default function RankingsPage() {
                         result={result}
                         rank={rank}
                         onHide={hideGame}
+                        platformsCatalog={platforms}
                       />
                     ))}
                   </div>
@@ -1304,6 +1330,7 @@ export default function RankingsPage() {
                           <th scope="col">#</th>
                           <th scope="col">Cover</th>
                           <SortableHeader label="Title" sortKey="TITLE" currentSort={filters.sort} currentDir={filters.sortDir} onSort={(s, d) => dispatch({ type: 'SET_SORT', sort: s, dir: d })} />
+                          <th scope="col" className="col-platforms">Platforms</th>
                           <SortableHeader label="Rating" sortKey="RATING" currentSort={filters.sort} currentDir={filters.sortDir} onSort={(s, d) => dispatch({ type: 'SET_SORT', sort: s, dir: d })} />
                           <SortableHeader label="Playtime" sortKey="PLAYTIME" currentSort={filters.sort} currentDir={filters.sortDir} onSort={(s, d) => dispatch({ type: 'SET_SORT', sort: s, dir: d })} />
                           <SortableHeader label="Price" sortKey="PRICE" currentSort={filters.sort} currentDir={filters.sortDir} onSort={(s, d) => dispatch({ type: 'SET_SORT', sort: s, dir: d })} />
@@ -1318,6 +1345,7 @@ export default function RankingsPage() {
                             result={result}
                             rank={rank}
                             onHide={hideGame}
+                            platformsCatalog={platforms}
                           />
                         ))}
                       </tbody>

@@ -635,19 +635,22 @@
   color: #fff;
 }
 
-/* Game card grid */
+/* Game card grid — capped column width so cards stay scannable (not full-width tiles). */
 .game-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 220px));
+  gap: 14px;
+  justify-content: start;
 
   @media (max-width: 480px) {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(148px, 200px));
     gap: 12px;
   }
 }
 
 .game-card {
+  max-width: 220px;
+  width: 100%;
   border: 1px solid var(--border);
   border-radius: 8px;
   overflow: hidden;
@@ -657,6 +660,10 @@
   &:hover {
     border-color: var(--accent-border);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  }
+
+  @media (max-width: 480px) {
+    max-width: 200px;
   }
 }
 
@@ -756,7 +763,7 @@
 }
 
 .game-card-body {
-  padding: 10px 12px 12px;
+  padding: 8px 10px 10px;
 }
 
 .game-card-title {
@@ -825,6 +832,21 @@
   text-decoration: underline;
 }
 
+.game-card-platforms {
+  margin: 6px 0 0;
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--text);
+  opacity: 0.88;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  min-height: 0;
+}
+
 .dismiss-game-btn {
   font: inherit;
   font-size: 12px;
@@ -849,6 +871,15 @@
 .rankings-table .col-actions {
   width: 1%;
   white-space: nowrap;
+}
+
+.rankings-table .col-platforms {
+  max-width: 14rem;
+  font-size: 13px;
+  line-height: 1.35;
+  white-space: normal;
+  word-break: break-word;
+  color: var(--text);
 }
 
 .table-external-link {
@@ -919,6 +950,12 @@
 .skeleton-stats {
   height: 32px;
   border-radius: 4px;
+}
+
+.skeleton-platforms {
+  margin-top: 8px;
+  width: 92%;
+  min-height: 14px;
 }
 
 .rankings-table-skeleton-wrap {

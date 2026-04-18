@@ -19,10 +19,15 @@ public class PriceEstimationService {
     private static final int BATCH_SIZE = 500;
 
     /**
-     * Maps IGDB platform IDs to estimated retail price in cents.
-     * PC platforms (6, 14, 3) are intentionally absent -- CheapShark handles those.
+     * Maps IGDB platform IDs to rough tier prices in cents (fallback when CheapShark has no deal).
+     * PC / Mac / Linux use a modest digital baseline so multi-platform rows are not dominated
+     * by console MSRP (e.g. indie on Steam + PS5 was showing $69.99).
      */
     private static final Map<Integer, Integer> PLATFORM_PRICE_MAP = Map.ofEntries(
+            Map.entry(6, 1499),    // PC (Windows) — typical indie digital list; CheapShark overrides when present
+            Map.entry(14, 1499),   // Mac
+            Map.entry(3, 1499),    // Linux
+
             // Current gen -- $69.99 baseline
             Map.entry(508, 6999),  // Nintendo Switch 2
             Map.entry(167, 6999),  // PlayStation 5
@@ -59,8 +64,8 @@ public class PriceEstimationService {
 
     /**
      * Assigns estimated prices to all GameCache records that have platform IDs.
-     * Uses the highest-tier price found across a game's platforms.
-     * Saves in batches of 500. PC-only games are skipped.
+     * Uses the lowest matched tier — when CheapShark is missing, this approximates
+     * "you can buy it on the cheapest listed platform family" instead of max console MSRP.
      */
     public void estimateAll() {
         List<GameCache> all = gameCacheRepository.findAll();
@@ -76,18 +81,18 @@ public class PriceEstimationService {
                 continue;
             }
 
-            Integer highestPrice = null;
+            Integer bestEstimate = null;
             for (int platformId : platformIds) {
                 Integer price = PLATFORM_PRICE_MAP.get(platformId);
                 if (price != null) {
-                    if (highestPrice == null || price > highestPrice) {
-                        highestPrice = price;
+                    if (bestEstimate == null || price < bestEstimate) {
+                        bestEstimate = price;
                     }
                 }
             }
 
-            if (highestPrice != null) {
-                game.setEstimatedPriceCents(highestPrice);
+            if (bestEstimate != null) {
+                game.setEstimatedPriceCents(bestEstimate);
                 game.setLastPriceSync(OffsetDateTime.now());
                 toSave.add(game);
                 estimated++;

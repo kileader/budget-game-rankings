@@ -48,7 +48,8 @@ class RankingControllerTest {
                                 "https://example.com/cover.jpg",
                                 "https://igdb.com/game-one",
                                 "https://cheapshark.com/deal/1",
-                                100
+                                100,
+                                new int[]{6, 130}
                         ),
                         new RankingResultDto(
                                 2L,
@@ -60,7 +61,8 @@ class RankingControllerTest {
                                 null,
                                 "https://igdb.com/game-two",
                                 null,
-                                730
+                                730,
+                                new int[]{167}
                         )
                 )
         ));
@@ -77,7 +79,10 @@ class RankingControllerTest {
                 .andExpect(jsonPath("$.results[0].priceCents").value(1999))
                 .andExpect(jsonPath("$.results[0].steamAppId").value(100))
                 .andExpect(jsonPath("$.results[1].igdbGameId").value(2))
-                .andExpect(jsonPath("$.results[1].steamAppId").value(730));
+                .andExpect(jsonPath("$.results[1].steamAppId").value(730))
+                .andExpect(jsonPath("$.results[0].platformIds.length()").value(2))
+                .andExpect(jsonPath("$.results[0].platformIds[0]").value(6))
+                .andExpect(jsonPath("$.results[1].platformIds[0]").value(167));
     }
 
     @Test
