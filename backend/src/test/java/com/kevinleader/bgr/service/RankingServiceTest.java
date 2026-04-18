@@ -2,6 +2,7 @@ package com.kevinleader.bgr.service;
 
 import com.kevinleader.bgr.dto.ranking.RankingPageDto;
 import com.kevinleader.bgr.dto.ranking.RankingQueryDto;
+import com.kevinleader.bgr.dto.ranking.RankingResultDto;
 import com.kevinleader.bgr.dto.ranking.RankingSort;
 import com.kevinleader.bgr.dto.ranking.SortDirection;
 import com.kevinleader.bgr.entity.GameCache;
@@ -66,7 +67,7 @@ class RankingServiceTest {
                 3000,
                 new BigDecimal("10.00"),
                 new BigDecimal("20.00"),
-                null, null, null, null, false, false,
+                null, null, null, null, false, false, false,
                 RankingSort.VALUE_SCORE,
                 SortDirection.DESC,
                 0,
@@ -91,7 +92,7 @@ class RankingServiceTest {
 
         RankingPageDto page = service.getRankingsPage(new RankingQueryDto(
                 null, null, null, null, null, null, null, null,
-                null, null, null, null, false, false,
+                null, null, null, null, false, false, false,
                 RankingSort.RELEASE_DATE, SortDirection.DESC,
                 1,
                 1
@@ -110,7 +111,7 @@ class RankingServiceTest {
 
         assertThatThrownBy(() -> service.getRankingsPage(new RankingQueryDto(
                 null, null, 2025, 2020, null, null, null, null,
-                null, null, null, null, false, false,
+                null, null, null, null, false, false, false,
                 RankingSort.VALUE_SCORE, SortDirection.DESC, 0, 100
         )))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -123,7 +124,7 @@ class RankingServiceTest {
 
         assertThatThrownBy(() -> service.getRankingsPage(new RankingQueryDto(
                 null, null, null, null, null, null, null, null,
-                null, new BigDecimal("2.01"), null, null, false, false,
+                null, new BigDecimal("2.01"), null, null, false, false, false,
                 RankingSort.VALUE_SCORE, SortDirection.DESC, 0, 100
         )))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -131,7 +132,7 @@ class RankingServiceTest {
 
         assertThatThrownBy(() -> service.getRankingsPage(new RankingQueryDto(
                 null, null, null, null, null, null, null, null,
-                null, null, null, new BigDecimal("-0.1"), false, false,
+                null, null, null, new BigDecimal("-0.1"), false, false, false,
                 RankingSort.VALUE_SCORE, SortDirection.DESC, 0, 100
         )))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -152,7 +153,7 @@ class RankingServiceTest {
 
         RankingPageDto zeroPlaytime = service.getRankingsPage(new RankingQueryDto(
                 null, null, null, null, null, null, null, null,
-                null, null, BigDecimal.ZERO, null, false, false,
+                null, null, BigDecimal.ZERO, null, false, false, false,
                 RankingSort.VALUE_SCORE, SortDirection.DESC, 0, 100
         ));
         assertThat(zeroPlaytime.results().getFirst().valueScore())
@@ -178,10 +179,36 @@ class RankingServiceTest {
 
         RankingPageDto included = service.getRankingsPage(new RankingQueryDto(
                 null, null, null, null, null, null, null, null,
-                null, null, null, null, true, false,
+                null, null, null, null, true, false, false,
                 RankingSort.VALUE_SCORE, SortDirection.DESC, 0, 100
         ));
         assertThat(included.total()).isEqualTo(2);
+    }
+
+    @Test
+    void excludesAdultRatedWhenFlagSet() {
+        GameCache teen = buildGame(1L, "Teen Game", "85.00", "12.00",
+                2500, null, LocalDate.of(2022, 1, 1), new int[]{130}, new int[]{12});
+        teen.setAgeRatingDisplay("ESRB · Teen");
+        GameCache mature = buildGame(2L, "Mature Game", "85.00", "12.00",
+                2500, null, LocalDate.of(2022, 1, 1), new int[]{130}, new int[]{12});
+        mature.setAgeRatingDisplay("ESRB · Mature");
+        GameCache unknown = buildGame(3L, "Unknown Rating", "85.00", "12.00",
+                2500, null, LocalDate.of(2022, 1, 1), new int[]{130}, new int[]{12});
+
+        RankingService service = serviceWithGames(teen, mature, unknown);
+
+        RankingPageDto all = service.getRankingsPage(query(RankingSort.VALUE_SCORE));
+        assertThat(all.total()).isEqualTo(3);
+
+        RankingPageDto filtered = service.getRankingsPage(new RankingQueryDto(
+                null, null, null, null, null, null, null, null,
+                null, null, null, null, false, false, true,
+                RankingSort.VALUE_SCORE, SortDirection.DESC, 0, 100
+        ));
+        assertThat(filtered.total()).isEqualTo(2);
+        assertThat(filtered.results()).extracting(RankingResultDto::igdbGameId)
+                .containsExactlyInAnyOrder(1L, 3L);
     }
 
     @Test
@@ -202,7 +229,7 @@ class RankingServiceTest {
 
         RankingPageDto included = service.getRankingsPage(new RankingQueryDto(
                 null, null, null, null, null, null, null, null,
-                null, null, null, null, false, true,
+                null, null, null, null, false, true, false,
                 RankingSort.VALUE_SCORE, SortDirection.DESC, 0, 100
         ));
         assertThat(included.total()).isEqualTo(2);
@@ -218,7 +245,7 @@ class RankingServiceTest {
     private RankingQueryDto query(RankingSort sort) {
         return new RankingQueryDto(
                 null, null, null, null, null, null, null, null,
-                null, null, null, null, false, false,
+                null, null, null, null, false, false, false,
                 sort, SortDirection.DESC, 0, 100
         );
     }

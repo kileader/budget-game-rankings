@@ -13,6 +13,7 @@ public record RankingResultDto(
         String igdbUrl,
         String cheapsharkDealUrl,
         Integer steamAppId,
-        int[] platformIds
+        int[] platformIds,
+        String ageRatingDisplay
 ) {
 }

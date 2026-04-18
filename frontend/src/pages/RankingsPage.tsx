@@ -76,7 +76,7 @@ function steamStoreUrl(steamAppId: number): string {
   return `https://store.steampowered.com/app/${steamAppId}/`;
 }
 
-/** Deal / store first, then IGDB (commerce-first cover tap). */
+/** Deal → Steam → IGDB — cover tap, title link, and PC platform chips use this order. */
 function primaryCoverHref(result: RankingResult): string | null {
   if (result.cheapsharkDealUrl) return result.cheapsharkDealUrl;
   if (result.steamAppId != null) return steamStoreUrl(result.steamAppId);
@@ -334,6 +334,7 @@ type Filters = {
   priceWeight: string;
   includeFreeToPlay: boolean;
   includeMultiplayerOnly: boolean;
+  excludeAdultRated: boolean;
   sort: RankingSort;
   sortDir: SortDirection;
 };
@@ -350,9 +351,9 @@ type State = {
   validationError: string | null;
 };
 
-type FilterField = keyof Omit<Filters, 'platformIds' | 'genreIds' | 'sort' | 'sortDir' | 'title' | 'ratingWeight' | 'playtimeWeight' | 'priceWeight' | 'includeFreeToPlay' | 'includeMultiplayerOnly'>;
+type FilterField = keyof Omit<Filters, 'platformIds' | 'genreIds' | 'sort' | 'sortDir' | 'title' | 'ratingWeight' | 'playtimeWeight' | 'priceWeight' | 'includeFreeToPlay' | 'includeMultiplayerOnly' | 'excludeAdultRated'>;
 type WeightField = 'ratingWeight' | 'playtimeWeight' | 'priceWeight';
-type IncludeField = 'includeFreeToPlay' | 'includeMultiplayerOnly';
+type IncludeField = 'includeFreeToPlay' | 'includeMultiplayerOnly' | 'excludeAdultRated';
 
 type Action =
   | { type: 'SET_FILTER'; field: FilterField; value: string }
@@ -385,6 +386,7 @@ const defaultFilters: Filters = {
   priceWeight: '1',
   includeFreeToPlay: false,
   includeMultiplayerOnly: false,
+  excludeAdultRated: false,
   sort: 'VALUE_SCORE',
   sortDir: 'DESC',
 };
@@ -437,6 +439,7 @@ function filtersToQuery(filters: Filters, offset: number): RankingQuery {
   if (prW !== undefined && prW !== 1) q.priceWeight = prW;
   if (filters.includeFreeToPlay) q.includeFreeToPlay = true;
   if (filters.includeMultiplayerOnly) q.includeMultiplayerOnly = true;
+  if (filters.excludeAdultRated) q.excludeAdultRated = true;
   return q;
 }
 
@@ -456,6 +459,7 @@ function configToFilters(config: RankingConfig): Filters {
     priceWeight: String(config.priceWeight ?? 1),
     includeFreeToPlay: false,
     includeMultiplayerOnly: false,
+    excludeAdultRated: false,
     sort: 'VALUE_SCORE',
     sortDir: 'DESC',
   };
@@ -894,6 +898,14 @@ function FilterBar({
           />
           Include multiplayer-only
         </label>
+        <label className="filter-checkbox" title="Uses IGDB content rating text. Games with no rating still appear.">
+          <input
+            type="checkbox"
+            checked={filters.excludeAdultRated}
+            onChange={e => onIncludeChange('excludeAdultRated', e.target.checked)}
+          />
+          Hide Mature / 18+ labels
+        </label>
       </div>
       <button type="button" className="filter-apply-btn" onClick={onApply}>Apply filters</button>
       <details className="scoring-advanced">
@@ -995,14 +1007,20 @@ function ResultRow({
           })()}
       </td>
       <td>
-        {result.igdbUrl ? (
-          <a href={result.igdbUrl} target="_blank" rel="noreferrer">
-            {result.title}
-            <span className="sr-only"> (opens in new tab)</span>
-          </a>
-        ) : (
-          result.title
-        )}
+        {(() => {
+          const href = primaryCoverHref(result);
+          return href ? (
+            <a href={href} target="_blank" rel="noreferrer" aria-label={primaryCoverAriaLabel(result)}>
+              {result.title}
+              <span className="sr-only"> (opens in new tab)</span>
+            </a>
+          ) : (
+            result.title
+          );
+        })()}
+      </td>
+      <td className="col-content-rating" title="Content rating (IGDB)">
+        {result.ageRatingDisplay?.trim() ? result.ageRatingDisplay : '—'}
       </td>
       <td className="col-platforms">
         <PlatformScanLine entries={platformEntries} result={result} />
@@ -1054,6 +1072,7 @@ function GameCardSkeleton() {
       <div className="game-card-cover skeleton-shimmer" />
       <div className="game-card-body">
         <div className="skeleton-line skeleton-title-block skeleton-shimmer" />
+        <div className="skeleton-line skeleton-content-rating skeleton-shimmer" />
         <div className="skeleton-line skeleton-score-block skeleton-shimmer" />
         <div className="skeleton-line skeleton-label-block skeleton-shimmer" />
         <div className="skeleton-stats skeleton-shimmer" />
@@ -1072,7 +1091,7 @@ function RankingsTableSkeleton() {
       <table className="rankings-table rankings-table-skeleton">
         <thead>
           <tr>
-            {Array.from({ length: 10 }, (_, i) => (
+            {Array.from({ length: 11 }, (_, i) => (
               <th key={i} scope="col"><span className="skeleton-line skeleton-th skeleton-shimmer" /></th>
             ))}
           </tr>
@@ -1080,7 +1099,7 @@ function RankingsTableSkeleton() {
         <tbody>
           {Array.from({ length: 10 }, (_, r) => (
             <tr key={r}>
-              {Array.from({ length: 10 }, (_, c) => (
+              {Array.from({ length: 11 }, (_, c) => (
                 <td key={c}><span className="skeleton-line skeleton-td skeleton-shimmer" /></td>
               ))}
             </tr>
@@ -1154,12 +1173,23 @@ function GameCard({
       </div>
       <div className="game-card-body">
         <h3 className="game-card-title">
-          {result.igdbUrl ? (
-            <a href={result.igdbUrl} target="_blank" rel="noreferrer">{result.title}</a>
-          ) : (
-            result.title
-          )}
+          {(() => {
+            const href = primaryCoverHref(result);
+            return href ? (
+              <a href={href} target="_blank" rel="noreferrer" aria-label={primaryCoverAriaLabel(result)}>
+                {result.title}
+                <span className="sr-only"> (opens in new tab)</span>
+              </a>
+            ) : (
+              result.title
+            );
+          })()}
         </h3>
+        {result.ageRatingDisplay?.trim() ? (
+          <p className="game-card-content-rating" title="Content rating from IGDB">
+            {result.ageRatingDisplay}
+          </p>
+        ) : null}
         <div className="game-card-score">{formatNumber(result.valueScore, 2)}</div>
         <div className="game-card-label">Value Score</div>
         <div className="game-card-stats">
@@ -1406,6 +1436,8 @@ export default function RankingsPage() {
               If no playtime data exists, the genre average is used.
               Prices come from <a href="https://www.cheapshark.com" target="_blank" rel="noreferrer">CheapShark</a> (lowest current PC price).
               Ratings come from <a href="https://www.igdb.com" target="_blank" rel="noreferrer">IGDB</a>.
+              <strong> Content</strong> (ESRB, PEGI, etc.) is also from IGDB when available — not every game has a rating listed.
+              Use <strong>Hide Mature / 18+ labels</strong> to drop games whose IGDB label looks adult-rated; unrated games stay in the list.
               Data refreshes nightly.
             </p>
             <p className="about-exclusions">
@@ -1556,6 +1588,7 @@ export default function RankingsPage() {
                           <th scope="col">#</th>
                           <th scope="col">Cover</th>
                           <SortableHeader label="Title" sortKey="TITLE" currentSort={filters.sort} currentDir={filters.sortDir} onSort={(s, d) => dispatch({ type: 'SET_SORT', sort: s, dir: d })} />
+                          <th scope="col" className="col-content-rating" title="ESRB, PEGI, or other board (from IGDB)">Content</th>
                           <th scope="col" className="col-platforms">Platforms</th>
                           <SortableHeader label="Rating" sortKey="RATING" currentSort={filters.sort} currentDir={filters.sortDir} onSort={(s, d) => dispatch({ type: 'SET_SORT', sort: s, dir: d })} />
                           <SortableHeader label="Playtime" sortKey="PLAYTIME" currentSort={filters.sort} currentDir={filters.sortDir} onSort={(s, d) => dispatch({ type: 'SET_SORT', sort: s, dir: d })} />

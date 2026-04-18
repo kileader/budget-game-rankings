@@ -18,6 +18,7 @@ export function getRankings(query: RankingQuery = {}, signal?: AbortSignal): Pro
   if (query.priceWeight !== undefined && query.priceWeight !== 1) params.set('priceWeight', String(query.priceWeight));
   if (query.includeFreeToPlay) params.set('includeFreeToPlay', 'true');
   if (query.includeMultiplayerOnly) params.set('includeMultiplayerOnly', 'true');
+  if (query.excludeAdultRated) params.set('excludeAdultRated', 'true');
   if (query.sort) params.set('sort', query.sort);
   if (query.sortDirection) params.set('sortDirection', query.sortDirection);
   if (query.offset !== undefined) params.set('offset', String(query.offset));

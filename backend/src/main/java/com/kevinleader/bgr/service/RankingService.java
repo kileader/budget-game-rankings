@@ -31,7 +31,7 @@ public class RankingService {
     public List<RankingResultDto> getTopRankings(int limit) {
         return getRankingsPage(new RankingQueryDto(
                 null, null, null, null, null, null, null, null, null,
-                null, null, null, false, false,
+                null, null, null, false, false, false,
                 RankingSort.VALUE_SCORE, SortDirection.DESC, 0, limit
         )).results();
     }
@@ -190,6 +190,10 @@ public class RankingService {
             return false;
         }
 
+        if (query.excludeAdultRated() && AdultAgeRatingClassifier.isAdultRated(game.getAgeRatingDisplay())) {
+            return false;
+        }
+
         return true;
     }
 
@@ -218,7 +222,8 @@ public class RankingService {
                 game.getIgdbUrl(),
                 game.getCheapsharkDealUrl(),
                 game.getSteamAppId(),
-                platformIds
+                platformIds,
+                game.getAgeRatingDisplay()
         );
     }
 

@@ -28,7 +28,8 @@ public class IgdbClient {
     private static final String FIELDS =
             "fields id,name,rating,rating_count,platforms,genres," +
             "first_release_date,cover.image_id,url,game_modes," +
-            "external_games.uid,external_games.category";
+            "external_games.uid,external_games.category," +
+            "age_ratings.rating_category.rating,age_ratings.organization.name";
 
     private final RestClient igdbRestClient;
     private final RestClient twitchRestClient;

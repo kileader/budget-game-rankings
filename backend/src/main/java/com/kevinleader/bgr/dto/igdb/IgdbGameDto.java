@@ -16,5 +16,6 @@ public record IgdbGameDto(
         IgdbCoverDto cover,
         String url,
         @JsonProperty("game_modes") List<Integer> gameModes,
-        @JsonProperty("external_games") List<IgdbExternalGameDto> externalGames
+        @JsonProperty("external_games") List<IgdbExternalGameDto> externalGames,
+        @JsonProperty("age_ratings") List<IgdbAgeRatingDto> ageRatings
 ) {}

@@ -18,6 +18,8 @@ public record RankingQueryDto(
         BigDecimal priceWeight,
         boolean includeFreeToPlay,
         boolean includeMultiplayerOnly,
+        /** When true, drop games whose stored IGDB content rating looks Mature / 18+ (unknown ratings stay). */
+        boolean excludeAdultRated,
         RankingSort sort,
         SortDirection sortDirection,
         int offset,

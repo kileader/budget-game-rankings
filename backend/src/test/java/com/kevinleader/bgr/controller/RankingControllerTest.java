@@ -18,6 +18,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
@@ -49,7 +50,8 @@ class RankingControllerTest {
                                 "https://igdb.com/game-one",
                                 "https://cheapshark.com/deal/1",
                                 100,
-                                new int[]{6, 130}
+                                new int[]{6, 130},
+                                "ESRB · Teen"
                         ),
                         new RankingResultDto(
                                 2L,
@@ -62,7 +64,8 @@ class RankingControllerTest {
                                 "https://igdb.com/game-two",
                                 null,
                                 730,
-                                new int[]{167}
+                                new int[]{167},
+                                null
                         )
                 )
         ));
@@ -82,7 +85,9 @@ class RankingControllerTest {
                 .andExpect(jsonPath("$.results[1].steamAppId").value(730))
                 .andExpect(jsonPath("$.results[0].platformIds.length()").value(2))
                 .andExpect(jsonPath("$.results[0].platformIds[0]").value(6))
-                .andExpect(jsonPath("$.results[1].platformIds[0]").value(167));
+                .andExpect(jsonPath("$.results[1].platformIds[0]").value(167))
+                .andExpect(jsonPath("$.results[0].ageRatingDisplay").value("ESRB · Teen"))
+                .andExpect(jsonPath("$.results[1].ageRatingDisplay").value(nullValue()));
     }
 
     @Test
@@ -104,13 +109,15 @@ class RankingControllerTest {
                         .param("sort", "PRICE")
                         .param("sortDirection", "ASC")
                         .param("offset", "5")
-                        .param("limit", "25"))
+                        .param("limit", "25")
+                        .param("excludeAdultRated", "true"))
                 .andExpect(status().isOk());
 
         ArgumentCaptor<RankingQueryDto> captor = ArgumentCaptor.forClass(RankingQueryDto.class);
         verify(rankingService).getRankingsPage(captor.capture());
 
         RankingQueryDto query = captor.getValue();
+        assertThat(query.excludeAdultRated()).isTrue();
         assertThat(query.platformIds()).containsExactly(130, 167);
         assertThat(query.genreIds()).containsExactly(12);
         assertThat(query.releaseYearMin()).isEqualTo(2020);

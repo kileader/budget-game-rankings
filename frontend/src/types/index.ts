@@ -21,6 +21,8 @@ export type RankingResult = {
   steamAppId?: number | null;
   /** IGDB platform IDs; resolve names via `/metadata/platforms`. */
   platformIds?: number[];
+  /** E.g. "ESRB · Teen" from IGDB age ratings; absent when unknown. */
+  ageRatingDisplay?: string | null;
 };
 
 export type RankingPage = {
@@ -55,6 +57,8 @@ export type RankingQuery = {
   priceWeight?: number;
   includeFreeToPlay?: boolean;
   includeMultiplayerOnly?: boolean;
+  /** Omit games with Mature / 18+ style IGDB content labels; unrated games still included. */
+  excludeAdultRated?: boolean;
   sort?: RankingSort;
   sortDirection?: SortDirection;
   offset?: number;

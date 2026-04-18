@@ -66,6 +66,10 @@ public class GameCache {
     @Column(name = "cheapshark_deal_url")
     private String cheapsharkDealUrl;
 
+    /** Content rating label from IGDB (e.g. ESRB · Teen); nullable when unknown. */
+    @Column(name = "age_rating_display", length = 128)
+    private String ageRatingDisplay;
+
     @Column(name = "last_igdb_sync")
     private OffsetDateTime lastIgdbSync;
 
