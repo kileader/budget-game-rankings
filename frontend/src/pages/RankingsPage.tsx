@@ -91,16 +91,88 @@ function primaryCoverAriaLabel(result: RankingResult): string {
   return '';
 }
 
-/** Order platforms like the filter catalog (API sort_order); unknown IDs last. */
-function formatPlatformLabels(ids: number[] | undefined, catalog: MetadataItem[] | null): string {
-  const list = ids?.length ? ids : [];
-  if (list.length === 0) return '—';
-  if (!catalog || catalog.length === 0) return list.map(String).join(', ');
-  const order = new Map(catalog.map((p, i) => [p.id, i]));
-  const sorted = [...list].sort((a, b) => (order.get(a) ?? 99999) - (order.get(b) ?? 99999));
-  return sorted
-    .map(id => catalog.find(p => p.id === id)?.name ?? `ID ${id}`)
-    .join(', ');
+/** Scan-friendly labels (IGDB platform ids). Fallback shortens catalog name. */
+const PLATFORM_SHORT: Record<number, string> = {
+  6: 'PC',
+  3: 'Linux',
+  14: 'Mac',
+  167: 'PS5',
+  169: 'XSX',
+  48: 'PS4',
+  49: 'XB1',
+  130: 'Switch',
+  612: 'NS2',
+  508: 'NS2',
+  7: 'PS3',
+  9: 'PS2',
+  8: 'PS1',
+  12: '360',
+  11: 'Xbox',
+  46: 'Vita',
+  38: 'PSP',
+  37: '3DS',
+  41: 'Wii U',
+  5: 'Wii',
+  18: 'GCN',
+  21: 'DS',
+  20: 'N64',
+  22: 'GBA',
+  24: 'GBC',
+  33: 'GB',
+  4: 'NES',
+  19: 'SNES',
+  32: 'MD',
+  29: 'DC',
+  39: 'iOS',
+  34: 'Android',
+  385: 'Quest',
+  390: 'PSVR2',
+  163: 'PC VR',
+  165: 'PS VR',
+};
+
+function shortPlatformToken(id: number, catalog: MetadataItem[] | null): string {
+  const fixed = PLATFORM_SHORT[id];
+  if (fixed) return fixed;
+  const name = catalog?.find(p => p.id === id)?.name;
+  if (!name) return String(id);
+  const compact = name.replace(/\s*\([^)]*\)\s*/g, '').trim();
+  if (compact.length <= 8) return compact;
+  return `${compact.slice(0, 7)}…`;
+}
+
+/**
+ * Platforms for display: optional filter = intersection with applied platform filter (non-empty).
+ * Returns short scan line + full-name tooltip.
+ */
+function formatPlatformScan(
+  ids: number[] | undefined,
+  catalog: MetadataItem[] | null,
+  appliedPlatformIds: number[] | undefined,
+): { line: string; detailTitle: string | undefined } {
+  let list = ids?.length ? [...ids] : [];
+  if (appliedPlatformIds && appliedPlatformIds.length > 0) {
+    const allowed = new Set(appliedPlatformIds);
+    list = list.filter(id => allowed.has(id));
+  }
+  if (list.length === 0) {
+    return { line: '—', detailTitle: undefined };
+  }
+
+  const order = catalog?.length
+    ? new Map(catalog.map((p, i) => [p.id, i]))
+    : null;
+  const sorted = [...list].sort((a, b) => (order?.get(a) ?? 99999) - (order?.get(b) ?? 99999));
+
+  const shortParts = sorted.map(id => shortPlatformToken(id, catalog));
+  const longParts = sorted.map(
+    id => catalog?.find(p => p.id === id)?.name ?? `Platform ${id}`,
+  );
+
+  return {
+    line: shortParts.join(' · '),
+    detailTitle: longParts.join(', '),
+  };
 }
 
 /** Natural first-click direction per column. */
@@ -757,12 +829,19 @@ function ResultRow({
   rank,
   onHide,
   platformsCatalog,
+  appliedPlatformIds,
 }: {
   result: RankingResult;
   rank: number;
   onHide: (igdbGameId: number) => void;
   platformsCatalog: MetadataItem[] | null;
+  appliedPlatformIds: number[] | undefined;
 }) {
+  const { line: platformLine, detailTitle: platformDetail } = formatPlatformScan(
+    result.platformIds,
+    platformsCatalog,
+    appliedPlatformIds,
+  );
   return (
     <tr>
       <td>{rank}</td>
@@ -789,7 +868,7 @@ function ResultRow({
           result.title
         )}
       </td>
-      <td className="col-platforms">{formatPlatformLabels(result.platformIds, platformsCatalog)}</td>
+      <td className="col-platforms" title={platformDetail}>{platformLine}</td>
       <td>{formatNumber(result.igdbRating)}</td>
       <td>
         {result.hltbHours !== null ? (
@@ -879,18 +958,24 @@ function GameCard({
   rank,
   onHide,
   platformsCatalog,
+  appliedPlatformIds,
 }: {
   result: RankingResult;
   rank: number;
   onHide: (igdbGameId: number) => void;
   platformsCatalog: MetadataItem[] | null;
+  appliedPlatformIds: number[] | undefined;
 }) {
   const coverInner = result.coverImageUrl ? (
     <img src={result.coverImageUrl} alt="" loading="lazy" />
   ) : (
     <div className="game-card-no-cover" />
   );
-  const platformLine = formatPlatformLabels(result.platformIds, platformsCatalog);
+  const { line: platformLine, detailTitle: platformDetail } = formatPlatformScan(
+    result.platformIds,
+    platformsCatalog,
+    appliedPlatformIds,
+  );
 
   return (
     <article className="game-card">
@@ -964,7 +1049,7 @@ function GameCard({
         </div>
         <p
           className="game-card-platforms"
-          title={platformLine === '—' ? undefined : `Platforms (IGDB): ${platformLine}`}
+          title={platformDetail ? platformDetail : undefined}
         >
           {platformLine}
         </p>
@@ -1319,6 +1404,7 @@ export default function RankingsPage() {
                         rank={rank}
                         onHide={hideGame}
                         platformsCatalog={platforms}
+                        appliedPlatformIds={appliedQuery.platformIds}
                       />
                     ))}
                   </div>
@@ -1346,6 +1432,7 @@ export default function RankingsPage() {
                             rank={rank}
                             onHide={hideGame}
                             platformsCatalog={platforms}
+                            appliedPlatformIds={appliedQuery.platformIds}
                           />
                         ))}
                       </tbody>
