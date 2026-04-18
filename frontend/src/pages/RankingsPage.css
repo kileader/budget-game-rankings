@@ -831,13 +831,32 @@
   line-height: 1.25;
   color: var(--text);
   opacity: 0.88;
-  word-break: break-word;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 1;
-  line-clamp: 1;
-  overflow: hidden;
   min-height: 0;
+  min-width: 0;
+}
+
+/* One line: preferred platforms first; ellipsis when overflow */
+.platform-scan-line {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.platform-sep {
+  opacity: 0.45;
+  user-select: none;
+}
+
+.platform-store-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.platform-store-link:hover {
+  text-decoration: underline;
 }
 
 .dismiss-game-btn {
@@ -870,9 +889,11 @@
   max-width: 14rem;
   font-size: 13px;
   line-height: 1.35;
-  white-space: normal;
-  word-break: break-word;
   color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: top;
 }
 
 .table-external-link {

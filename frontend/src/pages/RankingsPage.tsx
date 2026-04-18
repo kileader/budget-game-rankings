@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useCallback, useState, useRef, useId } from 'react';
+import { Fragment, useEffect, useReducer, useCallback, useState, useRef, useId } from 'react';
 import './RankingsPage.css';
 import { getRankings } from '../api/rankings';
 import { getPlatforms, getGenres } from '../api/metadata';
@@ -141,38 +141,170 @@ function shortPlatformToken(id: number, catalog: MetadataItem[] | null): string 
   return `${compact.slice(0, 7)}…`;
 }
 
+/** Windows, Mac, Linux, PC VR — we have CheapShark / Steam URLs on the result. */
+const PC_LIKE_PLATFORM_IDS = new Set([6, 14, 3, 163]);
+
+const PLAYSTATION_PLATFORM_IDS = new Set([167, 48, 46, 38, 7, 9, 8, 390, 165]);
+
+const XBOX_PLATFORM_IDS = new Set([169, 49, 12, 11]);
+
+const NINTENDO_PLATFORM_IDS = new Set([
+  130, 612, 508, 41, 5, 18, 37, 21, 20, 22, 24, 33, 4, 19, 32, 29,
+]);
+
+function storefrontHrefForPlatform(platformId: number, result: RankingResult): string | null {
+  const t = result.title.trim();
+  if (!t) return result.igdbUrl ?? null;
+
+  if (PC_LIKE_PLATFORM_IDS.has(platformId)) {
+    if (result.cheapsharkDealUrl) return result.cheapsharkDealUrl;
+    if (result.steamAppId != null) return steamStoreUrl(result.steamAppId);
+    return result.igdbUrl ?? null;
+  }
+  if (PLAYSTATION_PLATFORM_IDS.has(platformId)) {
+    return `https://store.playstation.com/en-us/search/${encodeURIComponent(t)}`;
+  }
+  if (XBOX_PLATFORM_IDS.has(platformId)) {
+    return `https://www.xbox.com/en-US/search/shop/?q=${encodeURIComponent(t)}`;
+  }
+  if (NINTENDO_PLATFORM_IDS.has(platformId)) {
+    return `https://www.nintendo.com/us/search/#/products?query=${encodeURIComponent(t)}`;
+  }
+  if (platformId === 39) {
+    return `https://apps.apple.com/us/search?term=${encodeURIComponent(t)}`;
+  }
+  if (platformId === 34) {
+    return `https://play.google.com/store/search?q=${encodeURIComponent(t)}&c=apps`;
+  }
+  if (platformId === 385) {
+    return `https://www.meta.com/experiences/search/?q=${encodeURIComponent(t)}`;
+  }
+  return result.igdbUrl ?? null;
+}
+
+function storefrontLinkHint(platformId: number, result: RankingResult, href: string): string {
+  if (result.igdbUrl && href === result.igdbUrl) {
+    return `${result.title} on IGDB (opens in new tab)`;
+  }
+  if (PC_LIKE_PLATFORM_IDS.has(platformId)) {
+    if (result.cheapsharkDealUrl && href === result.cheapsharkDealUrl) {
+      return `Cheapest tracked PC deal for ${result.title} (opens in new tab)`;
+    }
+    if (result.steamAppId != null && href.includes('steampowered.com')) {
+      return `${result.title} on Steam (opens in new tab)`;
+    }
+  }
+  if (PLAYSTATION_PLATFORM_IDS.has(platformId)) {
+    return `Search PlayStation Store for ${result.title} (opens in new tab)`;
+  }
+  if (XBOX_PLATFORM_IDS.has(platformId)) {
+    return `Search Microsoft Store for ${result.title} (opens in new tab)`;
+  }
+  if (NINTENDO_PLATFORM_IDS.has(platformId)) {
+    return `Search Nintendo store for ${result.title} (opens in new tab)`;
+  }
+  if (platformId === 39) return `Search App Store for ${result.title} (opens in new tab)`;
+  if (platformId === 34) return `Search Google Play for ${result.title} (opens in new tab)`;
+  if (platformId === 385) return `Search Meta Quest store for ${result.title} (opens in new tab)`;
+  return `Open in new tab`;
+}
+
+type PlatformScanEntry = {
+  id: number;
+  label: string;
+  detailName: string;
+  href: string | null;
+};
+
+/** Preferred platforms first (applied filter order, else onboarding order), then catalog order. */
+function sortPlatformIdsForDisplay(
+  list: number[],
+  catalog: MetadataItem[] | null,
+  priorityOrder: number[],
+): number[] {
+  const listSet = new Set(list);
+  const catalogOrder = catalog?.length
+    ? new Map(catalog.map((p, i) => [p.id, i]))
+    : null;
+
+  const first: number[] = [];
+  if (priorityOrder.length > 0) {
+    for (const id of priorityOrder) {
+      if (listSet.has(id)) first.push(id);
+    }
+  }
+  const firstSet = new Set(first);
+  const rest = list.filter(id => !firstSet.has(id));
+  rest.sort((a, b) => (catalogOrder?.get(a) ?? 99999) - (catalogOrder?.get(b) ?? 99999));
+  return [...first, ...rest];
+}
+
 /**
  * Platforms for display: optional filter = intersection with applied platform filter (non-empty).
- * Returns short scan line + full-name tooltip.
+ * Order: applied platform order (if any), else onboarding preferred order, then remaining by catalog.
  */
-function formatPlatformScan(
+function buildPlatformScanEntries(
   ids: number[] | undefined,
   catalog: MetadataItem[] | null,
   appliedPlatformIds: number[] | undefined,
-): { line: string; detailTitle: string | undefined } {
+  preferredPlatformOrder: number[],
+  result: RankingResult,
+): PlatformScanEntry[] {
   let list = ids?.length ? [...ids] : [];
   if (appliedPlatformIds && appliedPlatformIds.length > 0) {
     const allowed = new Set(appliedPlatformIds);
     list = list.filter(id => allowed.has(id));
   }
-  if (list.length === 0) {
-    return { line: '—', detailTitle: undefined };
+  if (list.length === 0) return [];
+
+  const priority =
+    appliedPlatformIds && appliedPlatformIds.length > 0
+      ? appliedPlatformIds
+      : preferredPlatformOrder;
+  const sortedIds = sortPlatformIdsForDisplay(list, catalog, priority);
+
+  return sortedIds.map(id => {
+    const detailName = catalog?.find(p => p.id === id)?.name ?? `Platform ${id}`;
+    const label = shortPlatformToken(id, catalog);
+    const href = storefrontHrefForPlatform(id, result);
+    return { id, label, detailName, href };
+  });
+}
+
+function PlatformScanLine({
+  entries,
+  result,
+}: {
+  entries: PlatformScanEntry[];
+  result: RankingResult;
+}) {
+  if (entries.length === 0) {
+    return <span className="platform-scan-line">—</span>;
   }
-
-  const order = catalog?.length
-    ? new Map(catalog.map((p, i) => [p.id, i]))
-    : null;
-  const sorted = [...list].sort((a, b) => (order?.get(a) ?? 99999) - (order?.get(b) ?? 99999));
-
-  const shortParts = sorted.map(id => shortPlatformToken(id, catalog));
-  const longParts = sorted.map(
-    id => catalog?.find(p => p.id === id)?.name ?? `Platform ${id}`,
+  const detailTitle = entries.map(e => e.detailName).join(', ');
+  return (
+    <div className="platform-scan-line" title={detailTitle}>
+      {entries.map((e, i) => (
+        <Fragment key={e.id}>
+          {i > 0 ? <span className="platform-sep" aria-hidden> · </span> : null}
+          {e.href ? (
+            <a
+              href={e.href}
+              target="_blank"
+              rel="noreferrer"
+              className="platform-store-link"
+              title={storefrontLinkHint(e.id, result, e.href)}
+              aria-label={storefrontLinkHint(e.id, result, e.href)}
+            >
+              {e.label}
+            </a>
+          ) : (
+            <span title={e.detailName}>{e.label}</span>
+          )}
+        </Fragment>
+      ))}
+    </div>
   );
-
-  return {
-    line: shortParts.join(' · '),
-    detailTitle: longParts.join(', '),
-  };
 }
 
 /** Natural first-click direction per column. */
@@ -830,17 +962,21 @@ function ResultRow({
   onHide,
   platformsCatalog,
   appliedPlatformIds,
+  preferredPlatformOrder,
 }: {
   result: RankingResult;
   rank: number;
   onHide: (igdbGameId: number) => void;
   platformsCatalog: MetadataItem[] | null;
   appliedPlatformIds: number[] | undefined;
+  preferredPlatformOrder: number[];
 }) {
-  const { line: platformLine, detailTitle: platformDetail } = formatPlatformScan(
+  const platformEntries = buildPlatformScanEntries(
     result.platformIds,
     platformsCatalog,
     appliedPlatformIds,
+    preferredPlatformOrder,
+    result,
   );
   return (
     <tr>
@@ -868,7 +1004,9 @@ function ResultRow({
           result.title
         )}
       </td>
-      <td className="col-platforms" title={platformDetail}>{platformLine}</td>
+      <td className="col-platforms">
+        <PlatformScanLine entries={platformEntries} result={result} />
+      </td>
       <td>{formatNumber(result.igdbRating)}</td>
       <td>
         {result.hltbHours !== null ? (
@@ -959,22 +1097,26 @@ function GameCard({
   onHide,
   platformsCatalog,
   appliedPlatformIds,
+  preferredPlatformOrder,
 }: {
   result: RankingResult;
   rank: number;
   onHide: (igdbGameId: number) => void;
   platformsCatalog: MetadataItem[] | null;
   appliedPlatformIds: number[] | undefined;
+  preferredPlatformOrder: number[];
 }) {
   const coverInner = result.coverImageUrl ? (
     <img src={result.coverImageUrl} alt="" loading="lazy" />
   ) : (
     <div className="game-card-no-cover" />
   );
-  const { line: platformLine, detailTitle: platformDetail } = formatPlatformScan(
+  const platformEntries = buildPlatformScanEntries(
     result.platformIds,
     platformsCatalog,
     appliedPlatformIds,
+    preferredPlatformOrder,
+    result,
   );
 
   return (
@@ -1047,12 +1189,9 @@ function GameCard({
             )}
           </span>
         </div>
-        <p
-          className="game-card-platforms"
-          title={platformDetail ? platformDetail : undefined}
-        >
-          {platformLine}
-        </p>
+        <div className="game-card-platforms">
+          <PlatformScanLine entries={platformEntries} result={result} />
+        </div>
       </div>
     </article>
   );
@@ -1405,6 +1544,7 @@ export default function RankingsPage() {
                         onHide={hideGame}
                         platformsCatalog={platforms}
                         appliedPlatformIds={appliedQuery.platformIds}
+                        preferredPlatformOrder={prefs?.platformIds ?? []}
                       />
                     ))}
                   </div>
@@ -1433,6 +1573,7 @@ export default function RankingsPage() {
                             onHide={hideGame}
                             platformsCatalog={platforms}
                             appliedPlatformIds={appliedQuery.platformIds}
+                            preferredPlatformOrder={prefs?.platformIds ?? []}
                           />
                         ))}
                       </tbody>
