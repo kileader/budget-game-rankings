@@ -117,6 +117,8 @@ export type RankingConfig = {
   ratingWeight: number;
   playtimeWeight: number;
   priceWeight: number;
+  /** Omitted on older API responses; treat as false. */
+  excludeAdultRated?: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -134,4 +136,5 @@ export type RankingConfigRequest = {
   ratingWeight?: number;
   playtimeWeight?: number;
   priceWeight?: number;
+  excludeAdultRated?: boolean;
 };

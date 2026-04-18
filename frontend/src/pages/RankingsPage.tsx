@@ -391,6 +391,57 @@ const defaultFilters: Filters = {
   sortDir: 'DESC',
 };
 
+const LAST_RANKING_FILTERS_KEY = 'bgr_last_ranking_filters';
+
+const VALID_SORTS = new Set<RankingSort>(['VALUE_SCORE', 'RATING', 'PLAYTIME', 'PRICE', 'TITLE', 'RELEASE_DATE']);
+const VALID_DIRS = new Set<SortDirection>(['ASC', 'DESC']);
+
+function numArray(v: unknown): number[] | undefined {
+  if (!Array.isArray(v)) return undefined;
+  const n = v.filter((x): x is number => typeof x === 'number' && Number.isFinite(x));
+  return n.length === v.length ? n : undefined;
+}
+
+/** Restore full filter bar state (including scoring weights) after refresh; falls back to onboarding. */
+function loadLastRankingFilters(): Filters | null {
+  try {
+    const raw = localStorage.getItem(LAST_RANKING_FILTERS_KEY);
+    if (!raw) return null;
+    const p = JSON.parse(raw) as Record<string, unknown>;
+    const f: Filters = { ...defaultFilters };
+    if (typeof p.releaseYearMin === 'string') f.releaseYearMin = p.releaseYearMin;
+    if (typeof p.releaseYearMax === 'string') f.releaseYearMax = p.releaseYearMax;
+    if (typeof p.minPriceDollars === 'string') f.minPriceDollars = p.minPriceDollars;
+    if (typeof p.maxPriceDollars === 'string') f.maxPriceDollars = p.maxPriceDollars;
+    if (typeof p.minPlaytimeHours === 'string') f.minPlaytimeHours = p.minPlaytimeHours;
+    if (typeof p.maxPlaytimeHours === 'string') f.maxPlaytimeHours = p.maxPlaytimeHours;
+    if (typeof p.title === 'string') f.title = p.title;
+    if (typeof p.ratingWeight === 'string') f.ratingWeight = p.ratingWeight;
+    if (typeof p.playtimeWeight === 'string') f.playtimeWeight = p.playtimeWeight;
+    if (typeof p.priceWeight === 'string') f.priceWeight = p.priceWeight;
+    if (typeof p.includeFreeToPlay === 'boolean') f.includeFreeToPlay = p.includeFreeToPlay;
+    if (typeof p.includeMultiplayerOnly === 'boolean') f.includeMultiplayerOnly = p.includeMultiplayerOnly;
+    if (typeof p.excludeAdultRated === 'boolean') f.excludeAdultRated = p.excludeAdultRated;
+    const pl = numArray(p.platformIds);
+    if (pl) f.platformIds = pl;
+    const g = numArray(p.genreIds);
+    if (g) f.genreIds = g;
+    if (typeof p.sort === 'string' && VALID_SORTS.has(p.sort as RankingSort)) f.sort = p.sort as RankingSort;
+    if (typeof p.sortDir === 'string' && VALID_DIRS.has(p.sortDir as SortDirection)) f.sortDir = p.sortDir as SortDirection;
+    return f;
+  } catch {
+    return null;
+  }
+}
+
+function persistLastRankingFilters(filters: Filters): void {
+  try {
+    localStorage.setItem(LAST_RANKING_FILTERS_KEY, JSON.stringify(filters));
+  } catch {
+    /* quota / private mode */
+  }
+}
+
 const YEAR_PRESET_MAP: Record<OnboardingPrefs['yearPreset'], string> = {
   modern: '2015',
   classic: '2005',
@@ -408,6 +459,17 @@ function filtersFromOnboarding(prefs: OnboardingPrefs | null): Filters {
   };
 }
 
+/** Wizard updates: platforms, year preset, include flags — keeps weights, genres, price, title, etc. */
+function mergeOnboardingIntoFilters(current: Filters, prefs: OnboardingPrefs): Filters {
+  return {
+    ...current,
+    platformIds: [...prefs.platformIds],
+    releaseYearMin: YEAR_PRESET_MAP[prefs.yearPreset],
+    includeFreeToPlay: prefs.includeFreeToPlay,
+    includeMultiplayerOnly: prefs.includeMultiplayerOnly,
+  };
+}
+
 function safeInt(s: string): number | undefined {
   const n = parseInt(s, 10);
   return isNaN(n) ? undefined : n;
@@ -416,6 +478,26 @@ function safeInt(s: string): number | undefined {
 function safeFloat(s: string): number | undefined {
   const n = parseFloat(s);
   return isNaN(n) ? undefined : n;
+}
+
+/** Default save name from current filters (user can edit). */
+function suggestConfigSaveName(filters: Filters): string {
+  const parts: string[] = [];
+  const yMin = filters.releaseYearMin.trim();
+  const yMax = filters.releaseYearMax.trim();
+  if (yMin || yMax) parts.push(`${yMin || '…'}–${yMax || '…'}`);
+  if (filters.platformIds.length) parts.push(`${filters.platformIds.length} platform${filters.platformIds.length === 1 ? '' : 's'}`);
+  if (filters.genreIds.length) parts.push(`${filters.genreIds.length} genre${filters.genreIds.length === 1 ? '' : 's'}`);
+  const rw = safeFloat(filters.ratingWeight);
+  const pw = safeFloat(filters.playtimeWeight);
+  const prw = safeFloat(filters.priceWeight);
+  if (rw !== undefined && pw !== undefined && prw !== undefined && (rw !== 1 || pw !== 1 || prw !== 1)) {
+    parts.push(`weights ${rw}/${pw}/${prw}`);
+  }
+  const base = parts.length > 0 ? parts.join(' · ') : 'Ranking setup';
+  const d = new Date();
+  const stamp = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  return `${base} (${stamp})`;
 }
 
 function filtersToQuery(filters: Filters, offset: number): RankingQuery {
@@ -459,7 +541,7 @@ function configToFilters(config: RankingConfig): Filters {
     priceWeight: String(config.priceWeight ?? 1),
     includeFreeToPlay: false,
     includeMultiplayerOnly: false,
-    excludeAdultRated: false,
+    excludeAdultRated: config.excludeAdultRated === true,
     sort: 'VALUE_SCORE',
     sortDir: 'DESC',
   };
@@ -514,6 +596,7 @@ function filtersToConfigRequest(name: string, filters: Filters) {
     minPriceCents?: number; maxPriceCents?: number;
     minPlaytimeHours?: number; maxPlaytimeHours?: number;
     ratingWeight?: number; playtimeWeight?: number; priceWeight?: number;
+    excludeAdultRated?: boolean;
   } = { name };
   if (filters.platformIds.length) req.platformIds = filters.platformIds;
   if (filters.genreIds.length) req.genreIds = filters.genreIds;
@@ -535,48 +618,65 @@ function filtersToConfigRequest(name: string, filters: Filters) {
   if (pW !== undefined && pW !== 1) req.playtimeWeight = pW;
   const prW = safeFloat(filters.priceWeight);
   if (prW !== undefined && prW !== 1) req.priceWeight = prW;
+  if (filters.excludeAdultRated) req.excludeAdultRated = true;
   return req;
 }
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
-    case 'SET_FILTER':
+    case 'SET_FILTER': {
+      const filters = { ...state.filters, [action.field]: action.value };
+      persistLastRankingFilters(filters);
       return {
         ...state,
-        filters: { ...state.filters, [action.field]: action.value },
+        filters,
         error: null,
         validationError: null,
       };
-    case 'SET_TITLE':
+    }
+    case 'SET_TITLE': {
+      const filters = { ...state.filters, title: action.value };
+      persistLastRankingFilters(filters);
       return {
         ...state,
-        filters: { ...state.filters, title: action.value },
+        filters,
         error: null,
         validationError: null,
       };
-    case 'SET_WEIGHT':
+    }
+    case 'SET_WEIGHT': {
+      const filters = { ...state.filters, [action.field]: action.value };
+      persistLastRankingFilters(filters);
       return {
         ...state,
-        filters: { ...state.filters, [action.field]: action.value },
+        filters,
         error: null,
         validationError: null,
       };
-    case 'SET_INCLUDE':
+    }
+    case 'SET_INCLUDE': {
+      const filters = { ...state.filters, [action.field]: action.value };
+      persistLastRankingFilters(filters);
       return {
         ...state,
-        filters: { ...state.filters, [action.field]: action.value },
+        filters,
         error: null,
         validationError: null,
       };
-    case 'SET_MULTI_FILTER':
+    }
+    case 'SET_MULTI_FILTER': {
+      const filters = { ...state.filters, [action.field]: action.ids };
+      persistLastRankingFilters(filters);
       return {
         ...state,
-        filters: { ...state.filters, [action.field]: action.ids },
+        filters,
         error: null,
         validationError: null,
       };
+    }
     case 'SET_SORT': {
       const newFilters = { ...state.filters, sort: action.sort, sortDir: action.dir };
+      persistLastRankingFilters(newFilters);
       return {
         ...state,
         filters: newFilters,
@@ -589,6 +689,7 @@ function reducer(state: State, action: Action): State {
       return { ...state, offset: 0, appliedQuery: filtersToQuery(state.filters, 0) };
     case 'LOAD_CONFIG': {
       const filters = configToFilters(action.config);
+      persistLastRankingFilters(filters);
       return {
         ...state,
         filters,
@@ -608,7 +709,8 @@ function reducer(state: State, action: Action): State {
     case 'SET_VALIDATION_ERROR':
       return { ...state, validationError: action.error };
     case 'APPLY_ONBOARDING': {
-      const filters = filtersFromOnboarding(action.prefs);
+      const filters = mergeOnboardingIntoFilters(state.filters, action.prefs);
+      persistLastRankingFilters(filters);
       return {
         ...state,
         filters,
@@ -623,7 +725,7 @@ function reducer(state: State, action: Action): State {
 }
 
 function buildInitialState(prefs: OnboardingPrefs | null): State {
-  const filters = filtersFromOnboarding(prefs);
+  const filters = loadLastRankingFilters() ?? filtersFromOnboarding(prefs);
   return {
     filters,
     appliedQuery: filtersToQuery(filters, 0),
@@ -907,11 +1009,16 @@ function FilterBar({
           Hide Mature / 18+ labels
         </label>
       </div>
-      <button type="button" className="filter-apply-btn" onClick={onApply}>Apply filters</button>
+      <div className="filter-apply-wrap">
+        <button type="button" className="filter-apply-btn" onClick={onApply}>
+          Apply filters &amp; scoring
+        </button>
+        <span className="filter-apply-sub">Uses everything above, including Advanced Scoring weights</span>
+      </div>
       <details className="scoring-advanced">
         <summary>Advanced Scoring</summary>
         <p className="scoring-advanced-hint">
-          Weights are 0–2 (each raises rating, playtime, or price in the value formula). Click <strong>Apply filters</strong> after changing weights to refetch.
+          Weights are 0–2 (each raises rating, playtime, or price in the value formula). Use <strong>Apply filters &amp; scoring</strong> after changing weights to refetch.
         </p>
         <div className="scoring-sliders">
           <label className="scoring-slider">
@@ -1450,6 +1557,9 @@ export default function RankingsPage() {
       {isLoggedIn && token && (
         <SavedConfigs
           token={token}
+          platforms={platforms}
+          genres={genres}
+          suggestedSaveName={suggestConfigSaveName(filters)}
           onLoad={config => dispatch({ type: 'LOAD_CONFIG', config })}
           onSave={handleSaveConfig}
         />

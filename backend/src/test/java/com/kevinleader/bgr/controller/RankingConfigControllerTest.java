@@ -41,7 +41,7 @@ class RankingConfigControllerTest {
     private RankingConfigDto sampleDto() {
         return new RankingConfigDto(1L, "Budget RPGs", List.of(), List.of(),
                 null, null, 0, 2000, null, null,
-                BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE, null, null);
+                BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE, false, null, null);
     }
 
     private MockMvc buildMockMvc(RankingConfigService service) {
@@ -136,7 +136,7 @@ class RankingConfigControllerTest {
 
         RankingConfigDto updated = new RankingConfigDto(1L, "Cheap Shooters", List.of(), List.of(),
                 null, null, 0, 1500, null, null,
-                BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE, null, null);
+                BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE, false, null, null);
         when(service.updateConfig(any(), eq(1L), any())).thenReturn(updated);
 
         mockMvc.perform(put("/users/me/ranking-configs/1")

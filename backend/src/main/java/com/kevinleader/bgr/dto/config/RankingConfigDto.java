@@ -18,6 +18,7 @@ public record RankingConfigDto(
         BigDecimal ratingWeight,
         BigDecimal playtimeWeight,
         BigDecimal priceWeight,
+        boolean excludeAdultRated,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt
 ) {

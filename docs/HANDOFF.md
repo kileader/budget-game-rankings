@@ -26,6 +26,8 @@
 - **Rankings API:** **`platformIds`** (IGDB) on each result; UI maps to names via existing **`GET /metadata/platforms`** (grid + table **Platforms** column / card footer).
 - **Content rating:** `game_cache.age_rating_display` (V10) filled on IGDB sync from `age_ratings.rating_category` + organization; API field **`ageRatingDisplay`** (e.g. `ESRB · Teen`, prefers ESRB then PEGI). Shown in table **Content** column and under card title when present.
 - **Rankings query:** `excludeAdultRated=true` drops games where `age_rating_display` matches **`AdultAgeRatingClassifier`** (Mature, AO, PEGI 18, etc.); **null label = keep**. UI checkbox **Hide Mature / 18+ labels** (Apply filters).
+- **Frontend:** `localStorage` key **`bgr_last_ranking_filters`** persists full **Filters** (incl. scoring weights) on change; **refresh** restores that instead of only onboarding defaults. Saved config list shows a **summary line**; save uses **suggested name** when the field is empty; primary action **Apply filters & scoring** + subtext mentions Advanced Scoring.
+- **Saved ranking configs (2026-04-14):** **`exclude_adult_rated`** column + API (`V11` migration). Load/save restores **Hide Mature / 18+** with the config. **Onboarding apply** merges platforms / year preset / include flags into **current** filters (does not reset scoring weights). **SavedConfigs** summary calls `formatConfigSummary` once per row and shows hide-M/18+ when the flag is set.
 - **Price fallback (`PriceEstimationService`):** tier map now includes **PC / Mac / Linux (6, 14, 3)** at **$14.99**; aggregation uses **minimum** matched tier (not max console MSRP) so multi-platform games without a CheapShark row don’t show **$69.99**. **CheapShark still wins** when `cheapshark_price_cents` is set. Re-run **`estimateAll`** (nightly job or admin) to refresh `estimated_price_cents` in DB.
 - Date: 2026-04-12
 - Branch: `main`
@@ -69,7 +71,7 @@
 
 ## Verification
 
-- `backend/mvnw.cmd test` — all passing (includes `RankingResultDto.steamAppId` JSON assertions).
+- `backend/mvnw.cmd test` — all passing (2026-04-14: `RankingConfigRequestDto` 13-arg literals in `RankingConfigServiceTest`; includes `RankingResultDto.steamAppId` JSON assertions).
 - `frontend/npm run build` passes clean (commerce-first cover + optional `steamAppId` type).
 
 ## Open Risks / Notes

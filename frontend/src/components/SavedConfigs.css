@@ -31,20 +31,41 @@
 
 .saved-config-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  padding: 6px 8px;
+  padding: 8px 10px;
   border-radius: 4px;
   background: var(--code-bg);
 }
 
+.saved-config-text {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .saved-config-name {
   font-size: 14px;
+  font-weight: 600;
   color: var(--text-h);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.saved-config-summary {
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--text);
+  opacity: 0.88;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
 }
 
 .saved-config-actions {
@@ -87,9 +108,23 @@
 
 .saved-configs-save {
   display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.saved-configs-save-row {
+  display: flex;
   gap: 8px;
   align-items: center;
   flex-wrap: wrap;
+}
+
+.saved-configs-save-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text);
+  opacity: 0.85;
 }
 
 .saved-configs-save input {

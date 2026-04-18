@@ -68,7 +68,7 @@ class RankingConfigServiceTest {
     void createConfigSavesAndReturnsDto() {
         AppUser user = testUser();
         RankingConfigRequestDto request = new RankingConfigRequestDto(
-                "Budget RPGs", null, null, null, null, null, 2000, null, null, null, null, null
+                "Budget RPGs", null, null, null, null, null, 2000, null, null, null, null, null, null
         );
         when(repository.existsByUserAndName(user, "Budget RPGs")).thenReturn(false);
         when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -81,10 +81,24 @@ class RankingConfigServiceTest {
     }
 
     @Test
+    void createConfigStoresExcludeAdultRated() {
+        AppUser user = testUser();
+        RankingConfigRequestDto request = new RankingConfigRequestDto(
+                "Family", null, null, null, null, null, null, null, null, null, null, null, true
+        );
+        when(repository.existsByUserAndName(user, "Family")).thenReturn(false);
+        when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        RankingConfigDto result = service.createConfig(user, request);
+
+        assertThat(result.excludeAdultRated()).isTrue();
+    }
+
+    @Test
     void createConfigRejectsDuplicateName() {
         AppUser user = testUser();
         RankingConfigRequestDto request = new RankingConfigRequestDto(
-                "Budget RPGs", null, null, null, null, null, null, null, null, null, null, null
+                "Budget RPGs", null, null, null, null, null, null, null, null, null, null, null, null
         );
         when(repository.existsByUserAndName(user, "Budget RPGs")).thenReturn(true);
 

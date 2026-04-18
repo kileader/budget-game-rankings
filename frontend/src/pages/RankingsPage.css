@@ -134,10 +134,24 @@
   align-self: center;
 }
 
-.filter-bar > .filter-apply-btn {
+.filter-bar > .filter-apply-wrap {
   grid-column: span 5;
   justify-self: end;
   align-self: center;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  max-width: 100%;
+}
+
+.filter-apply-sub {
+  font-size: 11px;
+  line-height: 1.25;
+  color: var(--text);
+  opacity: 0.85;
+  text-align: right;
+  max-width: 280px;
 }
 
 @media (max-width: 960px) {
@@ -157,9 +171,15 @@
     grid-column: span 6;
   }
 
-  .filter-bar > .filter-apply-btn {
+  .filter-bar > .filter-apply-wrap {
     grid-column: span 6;
     justify-self: stretch;
+    align-items: stretch;
+  }
+
+  .filter-apply-sub {
+    text-align: left;
+    max-width: none;
   }
 }
 

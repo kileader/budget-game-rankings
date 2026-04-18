@@ -30,6 +30,9 @@ public record RankingConfigRequestDto(
         BigDecimal playtimeWeight,
         @DecimalMin(value = ScoringWeightConstraints.MIN_STR, inclusive = true)
         @DecimalMax(value = ScoringWeightConstraints.MAX_STR, inclusive = true)
-        BigDecimal priceWeight
+        BigDecimal priceWeight,
+
+        /** When true, matches rankings query excludeAdultRated. Omitted or null = false. */
+        Boolean excludeAdultRated
 ) {
 }

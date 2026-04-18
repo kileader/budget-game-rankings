@@ -57,6 +57,9 @@ public class RankingConfig {
     @Column(name = "price_weight", precision = 3, scale = 2, nullable = false)
     private BigDecimal priceWeight = BigDecimal.ONE;
 
+    @Column(name = "exclude_adult_rated", nullable = false)
+    private boolean excludeAdultRated = false;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt = OffsetDateTime.now();
 

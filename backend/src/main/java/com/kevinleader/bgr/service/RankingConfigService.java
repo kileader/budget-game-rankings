@@ -64,6 +64,7 @@ public class RankingConfigService {
         config.setRatingWeight(weightOrDefault(request.ratingWeight()));
         config.setPlaytimeWeight(weightOrDefault(request.playtimeWeight()));
         config.setPriceWeight(weightOrDefault(request.priceWeight()));
+        config.setExcludeAdultRated(Boolean.TRUE.equals(request.excludeAdultRated()));
 
         return toDto(rankingConfigRepository.save(config));
     }
@@ -89,6 +90,7 @@ public class RankingConfigService {
         config.setRatingWeight(weightOrDefault(request.ratingWeight()));
         config.setPlaytimeWeight(weightOrDefault(request.playtimeWeight()));
         config.setPriceWeight(weightOrDefault(request.priceWeight()));
+        config.setExcludeAdultRated(Boolean.TRUE.equals(request.excludeAdultRated()));
         return config;
     }
 
@@ -107,6 +109,7 @@ public class RankingConfigService {
                 config.getRatingWeight(),
                 config.getPlaytimeWeight(),
                 config.getPriceWeight(),
+                config.isExcludeAdultRated(),
                 config.getCreatedAt(),
                 config.getUpdatedAt()
         );
