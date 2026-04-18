@@ -786,6 +786,8 @@
   line-height: 1.25;
   margin: 0 0 6px;
   color: var(--text-h);
+  /* Fixed two-line block: -webkit-box ignores min-height for single-line titles */
+  height: calc(1.25em * 2);
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -807,6 +809,7 @@
   margin: -2px 0 6px;
   font-size: 10px;
   line-height: 1.2;
+  min-height: 1.2em;
   font-weight: 600;
   color: var(--text);
   opacity: 0.9;
@@ -987,7 +990,8 @@
 }
 
 .skeleton-title-block {
-  min-height: calc(1.25em * 2);
+  /* Match .game-card-title: 13px × 1.25 line-height × 2 lines */
+  height: calc(13px * 1.25 * 2);
   margin-bottom: 6px;
 }
 

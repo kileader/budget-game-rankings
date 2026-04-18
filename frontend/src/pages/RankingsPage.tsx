@@ -1244,6 +1244,7 @@ function GameCard({
     preferredPlatformOrder,
     result,
   );
+  const contentRating = result.ageRatingDisplay?.trim();
 
   return (
     <article className="game-card">
@@ -1292,11 +1293,13 @@ function GameCard({
             );
           })()}
         </h3>
-        {result.ageRatingDisplay?.trim() ? (
-          <p className="game-card-content-rating" title="Content rating from IGDB">
-            {result.ageRatingDisplay}
-          </p>
-        ) : null}
+        <p
+          className="game-card-content-rating"
+          title={contentRating ? 'Content rating from IGDB' : undefined}
+          aria-hidden={!contentRating}
+        >
+          {contentRating ? contentRating : '\u00A0'}
+        </p>
         <div className="game-card-score">{formatNumber(result.valueScore, 2)}</div>
         <div className="game-card-label">Value Score</div>
         <div className="game-card-stats">
