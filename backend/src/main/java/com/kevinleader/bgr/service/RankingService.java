@@ -215,7 +215,8 @@ public class RankingService {
                 valueScore,
                 game.getCoverImageUrl(),
                 game.getIgdbUrl(),
-                game.getCheapsharkDealUrl()
+                game.getCheapsharkDealUrl(),
+                game.getSteamAppId()
         );
     }
 

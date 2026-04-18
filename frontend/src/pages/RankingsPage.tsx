@@ -72,6 +72,25 @@ function hltbSearchUrl(title: string): string {
   return `https://howlongtobeat.com/?q=${encodeURIComponent(title.trim())}`;
 }
 
+function steamStoreUrl(steamAppId: number): string {
+  return `https://store.steampowered.com/app/${steamAppId}/`;
+}
+
+/** Deal / store first, then IGDB (commerce-first cover tap). */
+function primaryCoverHref(result: RankingResult): string | null {
+  if (result.cheapsharkDealUrl) return result.cheapsharkDealUrl;
+  if (result.steamAppId != null) return steamStoreUrl(result.steamAppId);
+  if (result.igdbUrl) return result.igdbUrl;
+  return null;
+}
+
+function primaryCoverAriaLabel(result: RankingResult): string {
+  if (result.cheapsharkDealUrl) return `View deal for ${result.title} (opens in new tab)`;
+  if (result.steamAppId != null) return `${result.title} on Steam (opens in new tab)`;
+  if (result.igdbUrl) return `${result.title} on IGDB (opens in new tab)`;
+  return '';
+}
+
 /** Natural first-click direction per column. */
 const SORT_DEFAULT_DIR: Record<RankingSort, SortDirection> = {
   VALUE_SCORE: 'DESC',
@@ -735,13 +754,16 @@ function ResultRow({
       <td>{rank}</td>
       <td>
         {result.coverImageUrl &&
-          (result.igdbUrl ? (
-            <a href={result.igdbUrl} target="_blank" rel="noreferrer" aria-label={`${result.title} on IGDB (opens in new tab)`}>
+          (() => {
+            const href = primaryCoverHref(result);
+            return href ? (
+              <a href={href} target="_blank" rel="noreferrer" aria-label={primaryCoverAriaLabel(result)}>
+                <img src={result.coverImageUrl} alt="" width={40} height={53} loading="lazy" />
+              </a>
+            ) : (
               <img src={result.coverImageUrl} alt="" width={40} height={53} loading="lazy" />
-            </a>
-          ) : (
-            <img src={result.coverImageUrl} alt="" width={40} height={53} loading="lazy" />
-          ))}
+            );
+          })()}
       </td>
       <td>
         {result.igdbUrl ? (
@@ -867,19 +889,22 @@ function GameCard({
         >
           <span aria-hidden>×</span>
         </button>
-        {result.igdbUrl ? (
-          <a
-            href={result.igdbUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="game-card-cover-link"
-            aria-label={`${result.title} on IGDB (opens in new tab)`}
-          >
-            {coverInner}
-          </a>
-        ) : (
-          coverInner
-        )}
+        {(() => {
+          const href = primaryCoverHref(result);
+          return href ? (
+            <a
+              href={href}
+              target="_blank"
+              rel="noreferrer"
+              className="game-card-cover-link"
+              aria-label={primaryCoverAriaLabel(result)}
+            >
+              {coverInner}
+            </a>
+          ) : (
+            coverInner
+          );
+        })()}
       </div>
       <div className="game-card-body">
         <h3 className="game-card-title">
@@ -1180,24 +1205,39 @@ export default function RankingsPage() {
       {(data || loading) && !error && (
         <>
           <div className="results-toolbar">
-            <p className="result-count" aria-live="polite">
-              {data ? (
-                <>
-                  {data.total} games
-                  {hiddenIds.size > 0 && (
-                    <>
-                      {' · '}
-                      <span className="hidden-count">{hiddenIds.size} hidden</span>
-                      <button type="button" className="clear-hidden-btn" onClick={clearHiddenGames}>
-                        Show hidden
-                      </button>
-                    </>
-                  )}
-                </>
-              ) : (
-                '…'
-              )}
-            </p>
+            <div className="result-count-stack">
+              <p className="result-count" aria-live="polite">
+                {data ? (
+                  <>
+                    {data.total} games
+                    {' · '}
+                    <span className="hidden-count">{hiddenIds.size} hidden</span>
+                    <button
+                      type="button"
+                      className="clear-hidden-btn"
+                      disabled={hiddenIds.size === 0}
+                      onClick={clearHiddenGames}
+                    >
+                      Show hidden
+                    </button>
+                  </>
+                ) : (
+                  '…'
+                )}
+              </p>
+              <div className="result-count-subrow" aria-live="polite">
+                {!loading && data && (() => {
+                  const hiddenHere = data.results.filter(r => hiddenIds.has(r.igdbGameId)).length;
+                  const shownHere = data.results.length - hiddenHere;
+                  if (hiddenHere === 0 || shownHere === 0) return null;
+                  return (
+                    <span className="hidden-page-hint">
+                      {hiddenHere} hidden on this page ({shownHere} shown)
+                    </span>
+                  );
+                })()}
+              </div>
+            </div>
             <div className="view-toggle" role="radiogroup" aria-label="View mode">
               <button
                 className={viewMode === 'grid' ? 'active' : ''}
@@ -1243,11 +1283,6 @@ export default function RankingsPage() {
                     </button>
                     {' '}
                     or use the next page.
-                  </p>
-                )}
-                {hiddenOnPage > 0 && visibleRows.length > 0 && (
-                  <p className="status-message subtle" role="status">
-                    {hiddenOnPage} hidden on this page ({visibleRows.length} shown).
                   </p>
                 )}
                 {viewMode === 'grid' ? (

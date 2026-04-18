@@ -8,9 +8,10 @@
 
 ## Planned Features
 
-- **"No thanks" / hidden games** — per-user hide list (localStorage v1; optional DB sync when logged in later). Filter hidden IDs after fetch; undo toast; screen or panel to unhide. Complements wishlist (yes vs no).
+- **"No thanks" / hidden games** — **v1 shipped** (localStorage + × on cover). Remaining: optional **DB sync** when logged in; dedicated **hidden list** UI if desired.
 - **Game detail page** — in-app route (e.g. `/game/:id`); primary card action when shipped. Pairs with wishlist; Leaf feedback.
-- **Card outbound links by target** — title → IGDB (existing). **Cover** also links (same IGDB URL until in-app detail exists, then pick one consistent behavior). **CheapShark** — low lift: `cheapsharkDealUrl` is already on `RankingResult`; icon/label link only when non-null. **HLTB** — API has hours but not HLTB page id today; v1 = search URL from title, or add `hltb_game_id` (or equivalent) to `game_cache` + DTO for stable `/game/{id}` links after sync.
+- **Commerce-first cover (Leaf)** — **Shipped:** cover tap = **`cheapsharkDealUrl` → Steam store (`steamAppId`) → `igdbUrl`**; title still **IGDB**. **`steamAppId`** on `RankingResultDto` / JSON. **Deferred:** referral/affiliate query params + short UI disclosure.
+- **HLTB deep links (optional)** — add `hltb_game_id` to `game_cache` + DTO for stable HLTB game URLs; today playtime links to search from title.
 - **Optional shopping assistant** — off by default or gated; user message + rankings/API context first, then retrieval (RAG) over the nightly game cache when token limits or breadth require it. Leaf: treat the DB as the KB.
 - Wishlist Watchtower — Kevin's reframe: ranking engine stays as core, wishlist + price alerts become the prominent user-facing angle.
 - Sale sniper / price alerts — CheapShark has a price alert API; pairs with wishlist ("alert me when this hits $X") — Hunziboi feedback.

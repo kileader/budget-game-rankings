@@ -11,6 +11,7 @@ public record RankingResultDto(
         BigDecimal valueScore,
         String coverImageUrl,
         String igdbUrl,
-        String cheapsharkDealUrl
+        String cheapsharkDealUrl,
+        Integer steamAppId
 ) {
 }

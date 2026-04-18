@@ -17,6 +17,8 @@ export type RankingResult = {
   coverImageUrl: string | null;
   igdbUrl: string | null;
   cheapsharkDealUrl: string | null;
+  /** Present when backend has a Steam listing; omitted on older API responses. */
+  steamAppId?: number | null;
 };
 
 export type RankingPage = {

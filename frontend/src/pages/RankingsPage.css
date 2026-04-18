@@ -523,12 +523,6 @@
   color: #dc2626;
 }
 
-.status-message.subtle {
-  padding-top: 0;
-  font-size: 13px;
-  opacity: 0.9;
-}
-
 @media (prefers-color-scheme: dark) {
   .status-message.error {
     color: #f87171;
@@ -538,9 +532,15 @@
 /* Results toolbar */
 .results-toolbar {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
+  gap: 12px;
   margin-bottom: 12px;
+}
+
+.result-count-stack {
+  flex: 1;
+  min-width: 0;
 }
 
 .result-count {
@@ -553,8 +553,27 @@
   gap: 6px 10px;
 }
 
+/* Reserved line so per-page hint doesn’t push the grid when it appears */
+.result-count-subrow {
+  min-height: 1.35em;
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
 .hidden-count {
   opacity: 0.9;
+}
+
+.hidden-page-hint {
+  opacity: 0.88;
+  white-space: nowrap;
+}
+
+@media (max-width: 520px) {
+  .hidden-page-hint {
+    white-space: normal;
+  }
 }
 
 .clear-hidden-btn {
@@ -568,8 +587,14 @@
   cursor: pointer;
 }
 
-.clear-hidden-btn:hover {
+.clear-hidden-btn:hover:not(:disabled) {
   border-color: var(--accent);
+}
+
+.clear-hidden-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  color: var(--text);
 }
 
 .clear-hidden-btn:focus-visible {
