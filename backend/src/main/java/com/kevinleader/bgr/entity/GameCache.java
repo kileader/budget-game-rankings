@@ -91,20 +91,13 @@ public class GameCache {
     }
 
     /**
-     * Returns the best available price in cents.
-     * When both CheapShark and a tier estimate exist, uses the lower — stale or wrong high
-     * CheapShark rows happen (e.g. sync gaps); estimates can be wrong too, but console-only
-     * tiers are often MSRP while Steam pricing is cheaper.
+     * Best available price in cents: CheapShark when present (per Steam sync), otherwise tier estimate.
      */
     public Integer getEffectivePriceCents() {
         Integer cs = cheapsharkPriceCents;
-        Integer est = estimatedPriceCents;
-        if (cs != null && est != null) {
-            return Math.min(cs, est);
-        }
         if (cs != null) {
             return cs;
         }
-        return est;
+        return estimatedPriceCents;
     }
 }

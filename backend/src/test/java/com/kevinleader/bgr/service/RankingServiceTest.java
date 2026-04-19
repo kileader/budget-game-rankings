@@ -22,16 +22,31 @@ import static org.mockito.Mockito.when;
 class RankingServiceTest {
 
     @Test
-    void usesLowerOfCheapsharkAndEstimateAndMarksTrackedOnlyWhenDisplayIsCheapshark() {
-        GameCache inflatedCs = buildGame(1L, "Indie", "90.00", "10.00",
+    void prefersCheapsharkOverTierEstimateWhenBothPresent() {
+        GameCache steamRowWithCsAndEstimate = buildGame(1L, "Console + PC AAA", "90.00", "10.00",
                 6999, 1499, LocalDate.of(2024, 1, 1), new int[]{508, 130}, new int[]{12});
-        inflatedCs.setSteamAppId(2379780);
+        steamRowWithCsAndEstimate.setSteamAppId(2379780);
+        steamRowWithCsAndEstimate.setCheapsharkDealUrl("https://www.cheapshark.com/redirect?dealID=1");
 
-        RankingService service = serviceWithGames(inflatedCs);
+        RankingService service = serviceWithGames(steamRowWithCsAndEstimate);
 
         RankingPageDto page = service.getRankingsPage(query(RankingSort.VALUE_SCORE));
         RankingResultDto row = page.results().getFirst();
-        assertThat(row.priceCents()).isEqualTo(1499);
+        assertThat(row.priceCents()).isEqualTo(6999);
+        assertThat(row.priceIsTrackedDeal()).isTrue();
+        assertThat(row.cheapsharkDealUrl()).isEqualTo("https://www.cheapshark.com/redirect?dealID=1");
+    }
+
+    @Test
+    void fallsBackToTierEstimateWhenCheapsharkMissing() {
+        GameCache estimateOnly = buildGame(2L, "No deal synced", "88.00", "15.00",
+                null, 3999, LocalDate.of(2023, 6, 1), new int[]{48}, new int[]{12});
+
+        RankingService service = serviceWithGames(estimateOnly);
+
+        RankingPageDto page = service.getRankingsPage(query(RankingSort.VALUE_SCORE));
+        RankingResultDto row = page.results().getFirst();
+        assertThat(row.priceCents()).isEqualTo(3999);
         assertThat(row.priceIsTrackedDeal()).isFalse();
         assertThat(row.cheapsharkDealUrl()).isNull();
     }
