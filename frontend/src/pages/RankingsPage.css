@@ -109,17 +109,9 @@
   min-width: 0;
 }
 
-/* Child order: title, platform MS, genre MS, year, playtime, price, … */
-.filter-bar > .filter-group:nth-child(4) {
-  grid-column: span 4;
-  min-width: 0;
-}
-
-.filter-bar > .filter-group-playtime {
-  grid-column: span 8;
-  min-width: 0;
-}
-
+/* After platform/genre: year, playtime, price — 4 cols each (row 2: P/G/Y = 12; row 3: PT + $ + gap) */
+.filter-bar > .filter-group:nth-child(4),
+.filter-bar > .filter-group:nth-child(5),
 .filter-bar > .filter-group:nth-child(6) {
   grid-column: span 4;
   min-width: 0;
@@ -162,7 +154,7 @@
   .filter-bar > .multi-select:nth-child(2),
   .filter-bar > .multi-select:nth-child(3),
   .filter-bar > .filter-group:nth-child(4),
-  .filter-bar > .filter-group-playtime,
+  .filter-bar > .filter-group:nth-child(5),
   .filter-bar > .filter-group:nth-child(6) {
     grid-column: span 6;
   }
@@ -217,13 +209,6 @@
 
 .filter-group-inputs-only {
   margin-top: 0;
-}
-
-.filter-group-playtime {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 10px 12px 12px;
-  background: var(--accent-bg);
 }
 
 .filter-title-row {
@@ -325,87 +310,6 @@
   margin-top: 4px;
   max-width: 40rem;
   line-height: 1.35;
-}
-
-/* Dual range slider */
-.dual-range {
-  position: relative;
-  height: 24px;
-  margin: 2px 0 4px;
-}
-
-.dual-range-track {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
-  height: 4px;
-  transform: translateY(-50%);
-  background: var(--border);
-  border-radius: 2px;
-  pointer-events: none;
-}
-
-.dual-range-fill {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  background: var(--accent);
-  border-radius: 2px;
-  opacity: 0.8;
-}
-
-.dual-range-input {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  background: transparent;
-  appearance: none;
-  pointer-events: none;
-
-  /* Hide browser default track */
-  &::-webkit-slider-runnable-track {
-    background: transparent;
-    height: 4px;
-  }
-
-  &::-moz-range-track {
-    background: transparent;
-    height: 4px;
-  }
-
-  &::-webkit-slider-thumb {
-    appearance: none;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: var(--accent);
-    border: 2px solid var(--bg);
-    cursor: pointer;
-    pointer-events: auto;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
-    margin-top: -6px; /* center thumb on track */
-  }
-
-  &::-moz-range-thumb {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: var(--accent);
-    border: 2px solid var(--bg);
-    cursor: pointer;
-    pointer-events: auto;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
-  }
-
-  &:focus-visible::-webkit-slider-thumb {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
 }
 
 .filter-field {

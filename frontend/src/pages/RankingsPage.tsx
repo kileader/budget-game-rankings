@@ -751,67 +751,6 @@ function formatNumber(n: number | null, decimals = 1): string {
 
 // --- Sub-components ---
 
-function DualRangeSlider({
-  rangeMin,
-  rangeMax,
-  step,
-  valueMin,
-  valueMax,
-  onChangeMin,
-  onChangeMax,
-}: {
-  rangeMin: number;
-  rangeMax: number;
-  step: number;
-  valueMin: string;
-  valueMax: string;
-  onChangeMin: (v: string) => void;
-  onChangeMax: (v: string) => void;
-}) {
-  const lo = valueMin === '' ? rangeMin : Math.max(rangeMin, Math.min(rangeMax, Number(valueMin)));
-  const hi = valueMax === '' ? rangeMax : Math.max(rangeMin, Math.min(rangeMax, Number(valueMax)));
-  const span = rangeMax - rangeMin;
-  const loPercent = ((lo - rangeMin) / span) * 100;
-  const hiPercent = ((hi - rangeMin) / span) * 100;
-
-  return (
-    <div className="dual-range" aria-hidden>
-      <div className="dual-range-track">
-        <div
-          className="dual-range-fill"
-          style={{ left: `${loPercent}%`, right: `${100 - hiPercent}%` }}
-        />
-      </div>
-      <input
-        type="range"
-        className="dual-range-input"
-        min={rangeMin}
-        max={rangeMax}
-        step={step}
-        value={lo}
-        style={{ zIndex: lo > rangeMin + span * 0.9 ? 5 : 3 }}
-        onChange={e => {
-          const v = Number(e.target.value);
-          onChangeMin(v <= rangeMin ? '' : String(v));
-        }}
-      />
-      <input
-        type="range"
-        className="dual-range-input"
-        min={rangeMin}
-        max={rangeMax}
-        step={step}
-        value={hi}
-        style={{ zIndex: 4 }}
-        onChange={e => {
-          const v = Number(e.target.value);
-          onChangeMax(v >= rangeMax ? '' : String(v));
-        }}
-      />
-    </div>
-  );
-}
-
 function FilterBar({
   filters,
   platforms,
@@ -963,14 +902,8 @@ function FilterBar({
           {field('To', 'releaseYearMax', String(currentYear))}
         </div>
       </div>
-      <div className="filter-group filter-group-playtime">
+      <div className="filter-group">
         <span className="filter-group-label">Playtime (hrs)</span>
-        <DualRangeSlider
-          rangeMin={0} rangeMax={200} step={5}
-          valueMin={filters.minPlaytimeHours} valueMax={filters.maxPlaytimeHours}
-          onChangeMin={v => onFilterChange('minPlaytimeHours', v)}
-          onChangeMax={v => onFilterChange('maxPlaytimeHours', v)}
-        />
         <div className="filter-group-inputs filter-group-inputs-only">
           {field('Min', 'minPlaytimeHours', '0')}
           {field('Max', 'maxPlaytimeHours', '200')}
