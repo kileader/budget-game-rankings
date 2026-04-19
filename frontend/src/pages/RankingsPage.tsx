@@ -283,7 +283,7 @@ function PlatformScanLine({
   }
   const detailTitle = entries.map(e => e.detailName).join(', ');
   return (
-    <div className="platform-scan-line" title={detailTitle}>
+    <span className="platform-scan-line" title={detailTitle}>
       {entries.map((e, i) => (
         <Fragment key={e.id}>
           {i > 0 ? <span className="platform-sep" aria-hidden> · </span> : null}
@@ -303,7 +303,7 @@ function PlatformScanLine({
           )}
         </Fragment>
       ))}
-    </div>
+    </span>
   );
 }
 
@@ -1113,10 +1113,7 @@ function GameCardSkeleton() {
       <div className="game-card-body">
         <div className="skeleton-line skeleton-title-block skeleton-shimmer" />
         <div className="skeleton-line skeleton-content-rating skeleton-shimmer" />
-        <div className="skeleton-line skeleton-score-block skeleton-shimmer" />
-        <div className="skeleton-line skeleton-label-block skeleton-shimmer" />
         <div className="skeleton-stats skeleton-shimmer" />
-        <div className="skeleton-line skeleton-platforms skeleton-shimmer" />
       </div>
     </article>
   );
@@ -1233,9 +1230,14 @@ function GameCard({
         >
           {contentRating ? contentRating : '\u00A0'}
         </p>
-        <div className="game-card-score">{formatNumber(result.valueScore, 2)}</div>
-        <div className="game-card-label">Value Score</div>
         <div className="game-card-stats">
+          <span
+            className="game-card-stat-value"
+            title="Value score from the current ranking formula (rating, playtime, price, and Advanced Scoring weights)."
+          >
+            <span className="sr-only">Value score </span>
+            {result.valueScore !== null ? formatNumber(result.valueScore, 2) : '—'}
+          </span>
           <span title="IGDB Rating">⭐ {formatNumber(result.igdbRating)}</span>
           <span title="Price">
             {result.cheapsharkDealUrl ? (
@@ -1261,9 +1263,16 @@ function GameCard({
               '—'
             )}
           </span>
-        </div>
-        <div className="game-card-platforms">
-          <PlatformScanLine entries={platformEntries} result={result} />
+          {platformEntries.length > 0 ? (
+            <>
+              <span className="game-card-stat-sep" aria-hidden>
+                ·
+              </span>
+              <span className="game-card-platforms-inline">
+                <PlatformScanLine entries={platformEntries} result={result} />
+              </span>
+            </>
+          ) : null}
         </div>
       </div>
     </article>
