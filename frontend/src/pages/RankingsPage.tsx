@@ -783,6 +783,18 @@ function formatNumber(n: number | null, decimals = 1): string {
   return n.toFixed(decimals);
 }
 
+/** Short label for grid cards — keeps the stats row on one line (k/M for large scores). */
+function formatValueScoreForCard(v: number | null): string {
+  if (v === null || !Number.isFinite(v)) return '—';
+  const sign = v < 0 ? '-' : '';
+  const a = Math.abs(v);
+  if (a >= 1e9) return `${sign}${(a / 1e9).toFixed(1)}B`;
+  if (a >= 1e6) return `${sign}${(a / 1e6).toFixed(1)}M`;
+  if (a >= 1e3) return `${sign}${(a / 1e3).toFixed(1)}k`;
+  if (a >= 100) return `${sign}${a.toFixed(1)}`;
+  return v.toFixed(2);
+}
+
 /** Hover title on grid/table price: deal vs estimate (no on-screen badges). */
 function priceSourceTitleForCard(result: RankingResult): string {
   if (result.priceCents == null || result.priceCents <= 0) return 'Price';
@@ -1303,7 +1315,11 @@ function GameCard({
         <div className="game-card-stats">
           <span
             className="game-card-stat-value"
-            title="Value score from the current ranking formula (rating, playtime, price, and Advanced Scoring weights)."
+            title={
+              result.valueScore !== null
+                ? `Value score ${result.valueScore} (rating × playtime ÷ price; weights may apply)`
+                : 'Value score'
+            }
           >
             <img
               src="/bgr_favicon.svg"
@@ -1314,7 +1330,9 @@ function GameCard({
               decoding="async"
             />
             <span className="sr-only">Value score </span>
-            {result.valueScore !== null ? formatNumber(result.valueScore, 2) : '—'}
+            <span className="game-card-stat-value-text">
+              {formatValueScoreForCard(result.valueScore)}
+            </span>
           </span>
           <span title="IGDB user rating">
             {(() => {

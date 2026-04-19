@@ -739,12 +739,25 @@
 
 .game-card-stats {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 6px 8px;
+  gap: 4px 6px;
   font-size: 11px;
   line-height: 1.35;
   color: var(--text);
+  min-width: 0;
+  /* Single line: no flex wrap, no text wrap inside; clip if viewport is impossibly narrow */
+  white-space: nowrap;
+  overflow-x: hidden;
+}
+
+.game-card-stats > span {
+  min-width: 0;
+}
+
+/* Rating, price, playtime keep natural width; value flexes and ellipsizes if needed */
+.game-card-stats > span:not(.game-card-stat-value) {
+  flex-shrink: 0;
 }
 
 .game-card-stat-value {
@@ -754,6 +767,15 @@
   font-weight: 600;
   color: var(--text);
   opacity: 0.92;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.game-card-stat-value-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 10ch;
 }
 
 .game-card-value-icon {
@@ -766,6 +788,7 @@
 .game-card-stats a {
   color: var(--accent);
   text-decoration: none;
+  white-space: nowrap;
 
   &:hover {
     text-decoration: underline;
