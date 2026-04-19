@@ -773,26 +773,16 @@ function formatNumber(n: number | null, decimals = 1): string {
   return n.toFixed(decimals);
 }
 
-function PriceSourceBadge({ result }: { result: RankingResult }) {
-  if (result.priceCents == null || result.priceCents <= 0) return null;
+/** Hover title on grid/table price: deal vs estimate (no on-screen badges). */
+function priceSourceTitleForCard(result: RankingResult): string {
+  if (result.priceCents == null || result.priceCents <= 0) return 'Price';
   if (result.priceIsTrackedDeal === true) {
-    return (
-      <span className="price-source-badge price-source-badge--deal" title="Price from CheapShark deal tracking">
-        Deal
-      </span>
-    );
+    return 'Price — tracked PC deal (CheapShark)';
   }
   if (result.priceIsTrackedDeal === false) {
-    return (
-      <span
-        className="price-source-badge price-source-badge--est"
-        title="Estimated from platform tier when no tracked PC deal"
-      >
-        Est.
-      </span>
-    );
+    return 'Price — estimated from platform tier (no tracked deal)';
   }
-  return null;
+  return 'Price';
 }
 
 // --- Sub-components ---
@@ -1133,21 +1123,25 @@ function ResultRow({
         )}
       </td>
       <td>
-        <span className="price-with-source">
-          {(() => {
-            const href = cardPriceHref(result);
-            if (href) {
-              return (
-                <a href={href} target="_blank" rel="noreferrer" className="table-external-link">
-                  {formatPrice(result.priceCents)}
-                  <span className="sr-only"> — {cardPriceLinkLabel(result)}</span>
-                </a>
-              );
-            }
-            return formatPrice(result.priceCents);
-          })()}
-          <PriceSourceBadge result={result} />
-        </span>
+        {(() => {
+          const priceHover = priceSourceTitleForCard(result);
+          const href = cardPriceHref(result);
+          if (href) {
+            return (
+              <a
+                href={href}
+                target="_blank"
+                rel="noreferrer"
+                className="table-external-link"
+                title={priceHover}
+              >
+                {formatPrice(result.priceCents)}
+                <span className="sr-only"> — {cardPriceLinkLabel(result)}</span>
+              </a>
+            );
+          }
+          return <span title={priceHover}>{formatPrice(result.priceCents)}</span>;
+        })()}
       </td>
       <td>{formatNumber(result.valueScore, 2)}</td>
       <td>
@@ -1325,21 +1319,27 @@ function GameCard({
               );
             })()}
           </span>
-          <span className="game-card-price-with-source" title="Price">
+          <span className="game-card-price-with-source">
             {(() => {
+              const priceTitle = priceSourceTitleForCard(result);
               const priceLink = cardPriceHref(result);
               const priceLabel = formatPrice(result.priceCents);
               if (priceLink) {
                 return (
-                  <a href={priceLink} target="_blank" rel="noreferrer" className="game-card-stat-link">
+                  <a
+                    href={priceLink}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="game-card-stat-link"
+                    title={priceTitle}
+                  >
                     {priceLabel}
                     <span className="sr-only"> — {cardPriceLinkLabel(result)}</span>
                   </a>
                 );
               }
-              return priceLabel;
+              return <span title={priceTitle}>{priceLabel}</span>;
             })()}
-            <PriceSourceBadge result={result} />
           </span>
           <span
             title={
@@ -1580,12 +1580,13 @@ export default function RankingsPage() {
             </p>
             <p>
               <strong>Grid cards:</strong> the small site icon marks this app&apos;s <strong>value score</strong>;
-              ⭐ is the IGDB user rating (link only when we have an IGDB game URL); price links when there is a CheapShark deal or a Steam app id (and we have a price). A small <strong>Deal</strong> or <strong>Est.</strong> tag shows whether the dollar amount is from tracked PC deals vs a tier estimate. Hours link to HowLongToBeat only when playtime came from an HLTB match (otherwise the number is plain text). Platform names link to storefronts when we can infer them. Content rating (ESRB, etc.) appears on the right when IGDB lists one.
+              ⭐ is the IGDB user rating (link only when we have an IGDB game URL); price links when there is a CheapShark deal or a Steam app id (and we have a price). <strong>Hover the price</strong> (grid or table) to see whether that dollar amount is a tracked PC deal or a tier estimate. Hours link to HowLongToBeat only when playtime came from an HLTB match (otherwise the number is plain text). Platform names link to storefronts when we can infer them. Content rating (ESRB, etc.) appears on the right when IGDB lists one.
             </p>
             <p>
               Playtime comes from <a href="https://howlongtobeat.com" target="_blank" rel="noreferrer">HowLongToBeat</a>.
               If no playtime data exists, the genre average is used.
-              Prices come from <a href="https://www.cheapshark.com" target="_blank" rel="noreferrer">CheapShark</a> (lowest current PC price).
+              <strong>Deal</strong> vs <strong>Est.</strong> is the important split: <strong>Deal</strong> is a current tracked PC price from <a href="https://www.cheapshark.com" target="_blank" rel="noreferrer">CheapShark</a>; <strong>Est.</strong> is a tier-based estimate when there&apos;s no deal—treat estimates as more uncertain for &quot;what would I really pay?&quot; Hover the price to see which applies.
+              <strong> Comparing non-PC games:</strong> either way, the dollar stays PC/Steam–oriented, so it often won&apos;t match PlayStation, Xbox, or Nintendo store pricing—rankings between console titles can be misleading.
               Ratings come from <a href="https://www.igdb.com" target="_blank" rel="noreferrer">IGDB</a>.
               <strong> Content</strong> (ESRB, PEGI, etc.) is also from IGDB when available — not every game has a rating listed.
               Use <strong>Hide Mature / 18+ labels</strong> to drop games whose IGDB label looks adult-rated; unrated games stay in the list.

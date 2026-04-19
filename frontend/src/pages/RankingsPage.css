@@ -785,39 +785,9 @@
 .game-card-price-with-source {
   display: inline-flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 4px 6px;
-}
-
-.price-with-source {
-  display: inline-flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 4px 6px;
-}
-
-.price-source-badge {
-  font-size: 9px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding: 1px 5px;
-  border-radius: 3px;
-  line-height: 1.2;
-  vertical-align: middle;
-}
-
-.price-source-badge--deal {
-  color: var(--accent);
-  background: var(--accent-bg);
-  border: 1px solid var(--accent-border);
-}
-
-.price-source-badge--est {
-  color: var(--text);
-  opacity: 0.8;
-  background: var(--code-bg);
-  border: 1px solid var(--border);
+  flex-wrap: nowrap;
+  gap: 4px;
+  min-width: 0;
 }
 
 /* One line: preferred platforms first; ellipsis when overflow */
