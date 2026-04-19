@@ -1,6 +1,10 @@
-# Phi — project instructions (Budget Game Rankings)
+# Notes for Phi — BGR context (use in ChatGPT)
 
-Use this file together with `AGENTS.md`, `docs/HANDOFF.md`, `docs/DECISIONS.md`, and `docs/NEXT_STEPS.md`. If they conflict, **ask which source wins** or prefer **repo files** for facts, this file for **current intent and priorities**.
+**Phi** here means **native ChatGPT** (Kevin’s continuity/orientation assistant — see **`docs/PHI_AND_CID.md`**). This file is **not** for an in-repo agent named Phi; it’s **background you can paste or summarize** when working with Phi on Budget Game Rankings.
+
+**Cid** (Cursor build agent) should use `AGENTS.md` plus `docs/HANDOFF.md`, `docs/DECISIONS.md`, and `docs/NEXT_STEPS.md` for facts. If this file conflicts with those, **repo handoff docs win** for engineering truth.
+
+Use this file together with the handoff trio for **intent and priorities**. If intent conflicts with code reality, **flag it** and prefer **repo files** for what’s actually shipped.
 
 ---
 
