@@ -2,6 +2,8 @@
 
 ## Latest snapshot (2026-04-18)
 
+**Pricing fix (2026-04-19):** `GameCache.getEffectivePriceCents()` **prefers `cheapshark_price_cents` when set**, else tier estimate (removed **`min(cs, est)`** that forced ~**$14.99** over higher Steam deals). Deploy backend only; no migration. If UI still shows mostly **Est.** / **$14.99**, **`cheapshark_price_cents`** is often null — check sync logs / DB coverage, not only app code (`docs/DECISIONS.md`).
+
 **Rankings / UI**
 
 - **Grid cards:** Title (2-line fixed height) → **meta row**: platforms **left**, content rating **right** (or —). **Stats row:** site **favicon** + value score (first), ⭐ IGDB rating, price, playtime; value is not a giant hero number. **Links:** price → CheapShark deal if present, else **Steam** when `steamAppId` and `priceCents` > 0; ⭐ → IGDB only when `igdbUrl` is non-empty; **HLTB** only when API sends **`hltbFound: true`** (real HLTB match, not genre fallback). Table price uses same link rules.

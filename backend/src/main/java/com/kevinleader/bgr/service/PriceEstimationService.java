@@ -91,7 +91,7 @@ public class PriceEstimationService {
             }
 
             Set<Integer> idsForTier = new LinkedHashSet<>();
-            if (hasPlatforms) {
+            if (platformIds != null && platformIds.length > 0) {
                 for (int p : platformIds) {
                     idsForTier.add(p);
                 }
