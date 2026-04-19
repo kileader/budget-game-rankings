@@ -15,6 +15,7 @@ import java.math.RoundingMode;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -211,8 +212,12 @@ public class RankingService {
         BigDecimal valueScore = computeValueScore(game, query);
 
         int[] platformIds = game.getPlatformIds() != null ? game.getPlatformIds() : new int[0];
-        boolean priceIsTrackedDeal = game.getCheapsharkPriceCents() != null
-                && !(game.isFree() && query.includeFreeToPlay());
+        Integer cheapsharkCents = game.getCheapsharkPriceCents();
+        boolean showingCheapsharkPrice = cheapsharkCents != null
+                && !(game.isFree() && query.includeFreeToPlay())
+                && Objects.equals(priceCents, cheapsharkCents);
+        boolean priceIsTrackedDeal = showingCheapsharkPrice;
+        String cheapsharkDealUrl = showingCheapsharkPrice ? game.getCheapsharkDealUrl() : null;
         return new RankingResultDto(
                 game.getIgdbGameId(),
                 game.getTitle(),
@@ -224,7 +229,7 @@ public class RankingService {
                 valueScore,
                 game.getCoverImageUrl(),
                 game.getIgdbUrl(),
-                game.getCheapsharkDealUrl(),
+                cheapsharkDealUrl,
                 game.getSteamAppId(),
                 platformIds,
                 game.getAgeRatingDisplay()

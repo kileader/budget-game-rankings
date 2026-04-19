@@ -92,10 +92,19 @@ public class GameCache {
 
     /**
      * Returns the best available price in cents.
-     * CheapShark price takes priority over the platform-tier estimate.
+     * When both CheapShark and a tier estimate exist, uses the lower — stale or wrong high
+     * CheapShark rows happen (e.g. sync gaps); estimates can be wrong too, but console-only
+     * tiers are often MSRP while Steam pricing is cheaper.
      */
     public Integer getEffectivePriceCents() {
-        if (cheapsharkPriceCents != null) return cheapsharkPriceCents;
-        return estimatedPriceCents;
+        Integer cs = cheapsharkPriceCents;
+        Integer est = estimatedPriceCents;
+        if (cs != null && est != null) {
+            return Math.min(cs, est);
+        }
+        if (cs != null) {
+            return cs;
+        }
+        return est;
     }
 }

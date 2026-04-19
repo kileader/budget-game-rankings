@@ -62,6 +62,10 @@
   box-sizing: border-box;
 }
 
+#root > main {
+  flex: 1;
+}
+
 body {
   margin: 0;
 }

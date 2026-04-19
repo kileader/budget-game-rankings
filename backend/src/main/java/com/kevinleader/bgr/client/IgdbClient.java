@@ -101,6 +101,11 @@ public class IgdbClient {
         return gameModes != null && gameModes.contains(SINGLE_PLAYER_MODE);
     }
 
+    /**
+     * Picks a Steam app id from IGDB external games. Uses the first matching Steam
+     * ({@code category} 1) row after filter — IGDB order is relied on; numeric min/max across ids
+     * would be wrong (newer games have larger app ids than older bundles/demos).
+     */
     public static Integer extractSteamAppId(List<IgdbExternalGameDto> externalGames) {
         if (externalGames == null) return null;
         return externalGames.stream()

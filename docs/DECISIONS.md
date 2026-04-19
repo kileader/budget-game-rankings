@@ -1,11 +1,16 @@
 # Decisions
 
+## 2026-04-19
+
+- **Ranking price assembly:** `GameCache.getEffectivePriceCents()` uses **`min(cheapshark_price_cents, estimated_price_cents)`** when both are set so a stale or inflated CheapShark value does not beat a lower tier estimate. **`priceIsTrackedDeal`** and **`cheapshark_deal_url`** are emitted only when the **displayed** cent value equals the CheapShark column; otherwise the row is labeled estimate and deal URL is omitted (avoids linking a cheap display to an expensive deal). Nominal **free** substitute when `includeFreeToPlay` uses **$1.00** and is **not** flagged as a tracked deal.
+- **Tier estimation:** `PriceEstimationService` unions IGDB **`platform_ids`** with **Windows (6)** whenever **`steam_app_id`** is present (Steam catalog ⇒ assume PC tier participates in the min), including when IGDB omits PC from platforms. If **`platform_ids` is empty** but **`steam_app_id`** is set, only the PC tier is used (~$14.99 baseline).
+- **IGDB Steam id:** `IgdbClient.extractSteamAppId` uses the **first** Steam (`category` 1) row from IGDB after filter (same as before pricing work). Numeric min/max across ids was considered and rejected — newer titles have **larger** app ids than older bundles/demos, so min would pick the wrong row. Wrong or missing ids still require good IGDB data.
+
 ## 2026-04-18
 
 - **Handoff refresh:** `docs/HANDOFF.md` and `docs/NEXT_STEPS.md` rewritten for current rankings UI (grid meta row, favicon value score, conditional HLTB/IGDB/price links, `hltbFound` on API). Next product focus: **Wishlist Watchtower v1** (entity/DB exist; API/UI TBD).
 - **US pricing scope:** Improve **US** trust (CheapShark + estimates + honest labeling) before multi-region or per-store API sprawl. Aligns with existing **USD canonical** baseline (2026-04-03).
 - **HLTB outbound links:** Only when **`hltb_found`** is true in DB; genre (or other) fallback hours stay **plain text** so users are not sent to irrelevant HLTB search results.
-- **`priceIsTrackedDeal` on rankings JSON:** UI shows **Deal** vs **Est.** for the dollar amount; backend sets flag from `cheapshark_price_cents != null`, except nominal free substitute when `includeFreeToPlay` applies.
 - **My Setup + weights:** Onboarding save merges **Advanced Scoring** weights from `localStorage` (`bgr_last_ranking_filters`) or keeps existing **My Setup** config weights so `updateConfig` no longer resets them to 1.
 
 ## 2026-04-14

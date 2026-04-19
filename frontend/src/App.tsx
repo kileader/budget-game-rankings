@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom'
 import Nav from './components/Nav'
+import SiteFooter from './components/SiteFooter'
 import OnboardingModal from './components/OnboardingModal'
 import { useOnboarding } from './context/OnboardingContext'
 import { useAuth } from './context/AuthContext'
@@ -21,6 +22,7 @@ export default function App() {
       <main>
         <Outlet />
       </main>
+      <SiteFooter />
       {showModal && (
         <OnboardingModal
           initial={prefs}

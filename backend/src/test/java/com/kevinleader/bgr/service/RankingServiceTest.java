@@ -22,6 +22,21 @@ import static org.mockito.Mockito.when;
 class RankingServiceTest {
 
     @Test
+    void usesLowerOfCheapsharkAndEstimateAndMarksTrackedOnlyWhenDisplayIsCheapshark() {
+        GameCache inflatedCs = buildGame(1L, "Indie", "90.00", "10.00",
+                6999, 1499, LocalDate.of(2024, 1, 1), new int[]{508, 130}, new int[]{12});
+        inflatedCs.setSteamAppId(2379780);
+
+        RankingService service = serviceWithGames(inflatedCs);
+
+        RankingPageDto page = service.getRankingsPage(query(RankingSort.VALUE_SCORE));
+        RankingResultDto row = page.results().getFirst();
+        assertThat(row.priceCents()).isEqualTo(1499);
+        assertThat(row.priceIsTrackedDeal()).isFalse();
+        assertThat(row.cheapsharkDealUrl()).isNull();
+    }
+
+    @Test
     void ranksByValueScoreDescendingUsingEffectivePrice() {
         GameCache cheaperGame = buildGame(1L, "Cheaper Game", "90.00", "10.00",
                 1000, null, LocalDate.of(2020, 1, 1), new int[]{130}, new int[]{12});
@@ -183,6 +198,13 @@ class RankingServiceTest {
                 RankingSort.VALUE_SCORE, SortDirection.DESC, 0, 100
         ));
         assertThat(included.total()).isEqualTo(2);
+        RankingResultDto freeRow = included.results().stream()
+                .filter(r -> r.igdbGameId().equals(1L))
+                .findFirst()
+                .orElseThrow();
+        assertThat(freeRow.priceCents()).isEqualTo(100);
+        assertThat(freeRow.priceIsTrackedDeal()).isFalse();
+        assertThat(freeRow.cheapsharkDealUrl()).isNull();
     }
 
     @Test

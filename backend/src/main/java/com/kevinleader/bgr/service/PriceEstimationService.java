@@ -8,8 +8,10 @@ import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 public class PriceEstimationService {
@@ -63,9 +65,13 @@ public class PriceEstimationService {
     }
 
     /**
-     * Assigns estimated prices to all GameCache records that have platform IDs.
+     * Assigns estimated prices to games that have at least one IGDB platform id <strong>or</strong> a
+     * non-null {@code steam_app_id} (Steam-only rows use the PC tier alone).
      * Uses the lowest matched tier — when CheapShark is missing, this approximates
      * "you can buy it on the cheapest listed platform family" instead of max console MSRP.
+     * <p>
+     * If IGDB lists a Steam {@code steam_app_id} but omits Windows (6) from {@code platform_ids},
+     * we still include the PC tier so console MSRP (e.g. $69.99) does not dominate indies sold on Steam.
      */
     public void estimateAll() {
         List<GameCache> all = gameCacheRepository.findAll();
@@ -76,13 +82,31 @@ public class PriceEstimationService {
 
         for (GameCache game : all) {
             int[] platformIds = game.getPlatformIds();
-            if (platformIds == null || platformIds.length == 0) {
+            boolean hasPlatforms = platformIds != null && platformIds.length > 0;
+            Integer steamAppId = game.getSteamAppId();
+
+            if (!hasPlatforms && steamAppId == null) {
+                skipped++;
+                continue;
+            }
+
+            Set<Integer> idsForTier = new LinkedHashSet<>();
+            if (hasPlatforms) {
+                for (int p : platformIds) {
+                    idsForTier.add(p);
+                }
+            }
+            if (steamAppId != null) {
+                idsForTier.add(6);
+            }
+
+            if (idsForTier.isEmpty()) {
                 skipped++;
                 continue;
             }
 
             Integer bestEstimate = null;
-            for (int platformId : platformIds) {
+            for (int platformId : idsForTier) {
                 Integer price = PLATFORM_PRICE_MAP.get(platformId);
                 if (price != null) {
                     if (bestEstimate == null || price < bestEstimate) {

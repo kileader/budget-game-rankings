@@ -82,36 +82,46 @@ function igdbPageUrl(result: RankingResult): string | null {
   return u ? u : null;
 }
 
-function steamStoreUrl(steamAppId: number): string {
-  return `https://store.steampowered.com/app/${steamAppId}/`;
+/** CheapShark search for this Steam app — user compares stores/deals on their site. */
+function cheapsharkSearchBySteamUrl(steamAppId: number): string {
+  return `https://www.cheapshark.com/search?steamAppID=${steamAppId}`;
 }
 
-/** Deal → Steam → IGDB — cover tap, title link, and PC platform chips use this order. */
+/** CheapShark (Steam) → single deal redirect → IGDB — cover/title when no Steam id. */
 function primaryCoverHref(result: RankingResult): string | null {
+  if (result.steamAppId != null) return cheapsharkSearchBySteamUrl(result.steamAppId);
   if (result.cheapsharkDealUrl) return result.cheapsharkDealUrl;
-  if (result.steamAppId != null) return steamStoreUrl(result.steamAppId);
   if (result.igdbUrl) return result.igdbUrl;
   return null;
 }
 
 function primaryCoverAriaLabel(result: RankingResult): string {
+  if (result.steamAppId != null) {
+    return `Compare PC deals for ${result.title} on CheapShark (opens in new tab)`;
+  }
   if (result.cheapsharkDealUrl) return `View deal for ${result.title} (opens in new tab)`;
-  if (result.steamAppId != null) return `${result.title} on Steam (opens in new tab)`;
   if (result.igdbUrl) return `${result.title} on IGDB (opens in new tab)`;
   return '';
 }
 
-/** Card price link: CheapShark deal when present, else Steam store page when we have an app id. */
+/**
+ * Price link: CheapShark search when we have a Steam id; else single deal redirect if synced;
+ * otherwise no link (edge: priced row without Steam or deal URL).
+ */
 function cardPriceHref(result: RankingResult): string | null {
   if (result.priceCents == null || result.priceCents <= 0) return null;
+  if (result.steamAppId != null) return cheapsharkSearchBySteamUrl(result.steamAppId);
   if (result.cheapsharkDealUrl) return result.cheapsharkDealUrl;
-  if (result.steamAppId != null) return steamStoreUrl(result.steamAppId);
   return null;
 }
 
 function cardPriceLinkLabel(result: RankingResult): string {
-  if (result.cheapsharkDealUrl) return `View PC deal for ${result.title} (opens in new tab)`;
-  if (result.steamAppId != null) return `${result.title} on Steam (opens in new tab)`;
+  if (result.steamAppId != null) {
+    return `Compare PC deals for ${result.title} on CheapShark (opens in new tab)`;
+  }
+  if (result.cheapsharkDealUrl) {
+    return `View PC deal for ${result.title} (opens in new tab)`;
+  }
   return '';
 }
 
@@ -165,7 +175,7 @@ function shortPlatformToken(id: number, catalog: MetadataItem[] | null): string 
   return `${compact.slice(0, 7)}…`;
 }
 
-/** Windows, Mac, Linux, PC VR — we have CheapShark / Steam URLs on the result. */
+/** Windows, Mac, Linux, PC VR — CheapShark search (Steam id), else deal URL, else IGDB. */
 const PC_LIKE_PLATFORM_IDS = new Set([6, 14, 3, 163]);
 
 const PLAYSTATION_PLATFORM_IDS = new Set([167, 48, 46, 38, 7, 9, 8, 390, 165]);
@@ -181,8 +191,8 @@ function storefrontHrefForPlatform(platformId: number, result: RankingResult): s
   if (!t) return result.igdbUrl ?? null;
 
   if (PC_LIKE_PLATFORM_IDS.has(platformId)) {
+    if (result.steamAppId != null) return cheapsharkSearchBySteamUrl(result.steamAppId);
     if (result.cheapsharkDealUrl) return result.cheapsharkDealUrl;
-    if (result.steamAppId != null) return steamStoreUrl(result.steamAppId);
     return result.igdbUrl ?? null;
   }
   if (PLAYSTATION_PLATFORM_IDS.has(platformId)) {
@@ -211,11 +221,11 @@ function storefrontLinkHint(platformId: number, result: RankingResult, href: str
     return `${result.title} on IGDB (opens in new tab)`;
   }
   if (PC_LIKE_PLATFORM_IDS.has(platformId)) {
+    if (result.steamAppId != null && href === cheapsharkSearchBySteamUrl(result.steamAppId)) {
+      return `Compare PC deals for ${result.title} on CheapShark (opens in new tab)`;
+    }
     if (result.cheapsharkDealUrl && href === result.cheapsharkDealUrl) {
       return `Cheapest tracked PC deal for ${result.title} (opens in new tab)`;
-    }
-    if (result.steamAppId != null && href.includes('steampowered.com')) {
-      return `${result.title} on Steam (opens in new tab)`;
     }
   }
   if (PLAYSTATION_PLATFORM_IDS.has(platformId)) {
@@ -1580,7 +1590,7 @@ export default function RankingsPage() {
             </p>
             <p>
               <strong>Grid cards:</strong> the small site icon marks this app&apos;s <strong>value score</strong>;
-              ⭐ is the IGDB user rating (link only when we have an IGDB game URL); price links when there is a CheapShark deal or a Steam app id (and we have a price). <strong>Hover the price</strong> (grid or table) to see whether that dollar amount is a tracked PC deal or a tier estimate. Hours link to HowLongToBeat only when playtime came from an HLTB match (otherwise the number is plain text). Platform names link to storefronts when we can infer them. Content rating (ESRB, etc.) appears on the right when IGDB lists one.
+              ⭐ is the IGDB user rating (link only when we have an IGDB game URL); with a <strong>Steam app id</strong>, the price opens <a href="https://www.cheapshark.com" target="_blank" rel="noreferrer">CheapShark</a>&apos;s search for that game; without a Steam id but with a synced deal link, the price uses that redirect; otherwise the price may not be clickable. <strong>Hover the price</strong> (grid or table) to see whether that dollar amount is a tracked PC deal or a tier estimate. Hours link to HowLongToBeat only when playtime came from an HLTB match (otherwise the number is plain text). Platform names link to storefronts when we can infer them. Content rating (ESRB, etc.) appears on the right when IGDB lists one.
             </p>
             <p>
               Playtime comes from <a href="https://howlongtobeat.com" target="_blank" rel="noreferrer">HowLongToBeat</a>.
