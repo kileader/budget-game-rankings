@@ -795,7 +795,36 @@ function formatValueScoreForCard(v: number | null): string {
   return v.toFixed(2);
 }
 
-/** Hover title on grid/table price: deal vs estimate (no on-screen badges). */
+/** IGDB platform id for Windows (PC). */
+const IGDB_PLATFORM_PC_WINDOWS = 6;
+
+/**
+ * Tier estimates for Steam/PC rows are often misleading (e.g. $14.99 floor); show a visible flag.
+ * Skips nominal free substitute ($1.00) and tracked CheapShark deals.
+ */
+function shouldWarnPcTierEstimate(result: RankingResult): boolean {
+  if (result.priceIsTrackedDeal === true) return false;
+  if (result.priceCents == null || result.priceCents <= 100) return false;
+  const steamOrPc =
+    result.steamAppId != null ||
+    (result.platformIds?.includes(IGDB_PLATFORM_PC_WINDOWS) ?? false);
+  return steamOrPc;
+}
+
+function PcTierEstimateBadge({ result }: { result: RankingResult }) {
+  if (!shouldWarnPcTierEstimate(result)) return null;
+  return (
+    <span
+      className="price-pc-est-badge"
+      title="Tier estimate — often inaccurate for PC/Steam when no CheapShark deal is synced for this row."
+      aria-label="Estimated price, not a tracked deal"
+    >
+      Est
+    </span>
+  );
+}
+
+/** Hover title on grid/table price: deal vs estimate. */
 function priceSourceTitleForCard(result: RankingResult): string {
   if (result.priceCents == null || result.priceCents <= 0) return 'Price';
   if (result.priceIsTrackedDeal === true) {
@@ -1144,25 +1173,33 @@ function ResultRow({
           '—'
         )}
       </td>
-      <td>
+      <td className="table-price-with-badge">
         {(() => {
           const priceHover = priceSourceTitleForCard(result);
           const href = cardPriceHref(result);
           if (href) {
             return (
-              <a
-                href={href}
-                target="_blank"
-                rel="noreferrer"
-                className="table-external-link"
-                title={priceHover}
-              >
-                {formatPrice(result.priceCents)}
-                <span className="sr-only"> — {cardPriceLinkLabel(result)}</span>
-              </a>
+              <>
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="table-external-link"
+                  title={priceHover}
+                >
+                  {formatPrice(result.priceCents)}
+                  <span className="sr-only"> — {cardPriceLinkLabel(result)}</span>
+                </a>
+                <PcTierEstimateBadge result={result} />
+              </>
             );
           }
-          return <span title={priceHover}>{formatPrice(result.priceCents)}</span>;
+          return (
+            <>
+              <span title={priceHover}>{formatPrice(result.priceCents)}</span>
+              <PcTierEstimateBadge result={result} />
+            </>
+          );
         })()}
       </td>
       <td>{formatNumber(result.valueScore, 2)}</td>
@@ -1354,19 +1391,27 @@ function GameCard({
               const priceLabel = formatPrice(result.priceCents);
               if (priceLink) {
                 return (
-                  <a
-                    href={priceLink}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="game-card-stat-link"
-                    title={priceTitle}
-                  >
-                    {priceLabel}
-                    <span className="sr-only"> — {cardPriceLinkLabel(result)}</span>
-                  </a>
+                  <>
+                    <a
+                      href={priceLink}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="game-card-stat-link"
+                      title={priceTitle}
+                    >
+                      {priceLabel}
+                      <span className="sr-only"> — {cardPriceLinkLabel(result)}</span>
+                    </a>
+                    <PcTierEstimateBadge result={result} />
+                  </>
                 );
               }
-              return <span title={priceTitle}>{priceLabel}</span>;
+              return (
+                <>
+                  <span title={priceTitle}>{priceLabel}</span>
+                  <PcTierEstimateBadge result={result} />
+                </>
+              );
             })()}
           </span>
           <span
@@ -1596,6 +1641,12 @@ export default function RankingsPage() {
     <div className="rankings-page">
       <h1>Game Rankings</h1>
       <p className="rankings-subtitle">Ranked by value: rating × playtime ÷ price.</p>
+      <p className="rankings-price-note">
+        <strong className="price-pc-est-badge price-pc-est-badge--inline">Est</strong> on a price means a{' '}
+        <strong>tier estimate</strong> (often rough on PC/Steam when no CheapShark deal is synced).{' '}
+        <strong>Deal</strong> in the price hover means a tracked sale. Full cache refresh runs{' '}
+        <strong>nightly</strong> (default 03:00 server time) and when an admin triggers sync.
+      </p>
 
       <section className="about-section" aria-label="How rankings work">
         <details>
@@ -1613,7 +1664,7 @@ export default function RankingsPage() {
             <p>
               Playtime comes from <a href="https://howlongtobeat.com" target="_blank" rel="noreferrer">HowLongToBeat</a>.
               If no playtime data exists, the genre average is used.
-              <strong>Deal</strong> vs <strong>Est.</strong> is the important split: <strong>Deal</strong> is a current tracked PC price from <a href="https://www.cheapshark.com" target="_blank" rel="noreferrer">CheapShark</a>; <strong>Est.</strong> is a tier-based estimate when there&apos;s no deal—treat estimates as more uncertain for &quot;what would I really pay?&quot; Hover the price to see which applies.
+              <strong>Deal</strong> vs <strong>Est.</strong> is the important split: <strong>Deal</strong> is a current tracked PC price from <a href="https://www.cheapshark.com" target="_blank" rel="noreferrer">CheapShark</a>; <strong>Est.</strong> is a tier-based estimate when there&apos;s no deal—treat estimates as more uncertain for &quot;what would I really pay?&quot; On PC/Steam rows, a small <strong>Est</strong> badge appears next to the price when it&apos;s still an estimate. Hover the price to see which applies.
               <strong> Comparing non-PC games:</strong> either way, the dollar stays PC/Steam–oriented, so it often won&apos;t match PlayStation, Xbox, or Nintendo store pricing—rankings between console titles can be misleading.
               Ratings come from <a href="https://www.igdb.com" target="_blank" rel="noreferrer">IGDB</a>.
               <strong> Content</strong> (ESRB, PEGI, etc.) is also from IGDB when available — not every game has a rating listed.

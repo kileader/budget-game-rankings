@@ -1,6 +1,26 @@
 # Handoff
 
-## Latest snapshot (2026-04-18)
+## Latest snapshot (2026-04-20)
+
+**Admin API:** Full reference and **when to use each sync endpoint** — `docs/ADMIN_API.md`. Partial sync: `POST /admin/sync/cheapshark`, `/admin/sync/hltb`, `/admin/sync/igdb`, `/admin/sync/price-estimation`; full pipeline `POST /admin/sync`; HLTB reset+full `POST /admin/hltb-resync`. All share the cache lock (**409** if busy).
+
+---
+
+## Previous snapshot (2026-04-19)
+
+**CheapShark sync bug fixed:** `CheapSharkClient` was calling `GET /games?steamAppID={id}` and deserializing the JSON array response as a single `CheapSharkGameDto`. Jackson silently failed; `cheapshark_price_cents` was never written for any game; every game with a Steam ID fell back to the $14.99 PC tier estimate. Fixed with a two-step lookup: (1) search by Steam App ID to get CheapShark `gameID`, (2) fetch deals by that ID (`GET /games?id={gameID}`). Added `CheapSharkSearchResultDto` to model the search response array element.
+
+**Files touched:**
+- `backend/src/.../client/CheapSharkClient.java` — two-step lookup replacing single call
+- `backend/src/.../dto/cheapshark/CheapSharkSearchResultDto.java` — new record for search result array element
+
+**Verification:** `./mvnw compile` clean. No existing CheapShark tests.
+
+**Required action:** `POST /admin/sync` after deploying to populate real `cheapshark_price_cents` values. All current DB rows have null — estimates are the only prices right now.
+
+---
+
+## Previous snapshot (2026-04-18)
 
 **Pricing fix (2026-04-19):** `GameCache.getEffectivePriceCents()` **prefers `cheapshark_price_cents` when set**, else tier estimate (removed **`min(cs, est)`** that forced ~**$14.99** over higher Steam deals). Deploy backend only; no migration. If UI still shows mostly **Est.** / **$14.99**, **`cheapshark_price_cents`** is often null — check sync logs / DB coverage, not only app code (`docs/DECISIONS.md`).
 

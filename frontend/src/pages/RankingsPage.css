@@ -23,7 +23,51 @@
 
 .rankings-subtitle {
   color: var(--text);
-  margin-bottom: 24px;
+  margin-bottom: 8px;
+}
+
+.rankings-price-note {
+  margin: 0 0 20px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
+  max-width: 52rem;
+}
+
+.table-price-with-badge {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.price-pc-est-badge {
+  display: inline-block;
+  padding: 0 4px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.4;
+  vertical-align: middle;
+  color: #92400e;
+  background: rgba(180, 83, 9, 0.18);
+  border: 1px solid rgba(180, 83, 9, 0.35);
+  flex-shrink: 0;
+}
+
+.price-pc-est-badge--inline {
+  font-size: inherit;
+  padding: 1px 5px;
+  vertical-align: baseline;
+}
+
+@media (prefers-color-scheme: dark) {
+  .price-pc-est-badge {
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.12);
+    border-color: rgba(251, 191, 36, 0.35);
+  }
 }
 
 /* About section */

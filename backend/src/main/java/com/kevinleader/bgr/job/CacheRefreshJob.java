@@ -37,6 +37,103 @@ public class CacheRefreshJob {
         return running.get();
     }
 
+    /**
+     * IGDB catalog sync only. Returns false if another cache job is already running.
+     */
+    public boolean runIgdbSyncOnly() {
+        if (!running.compareAndSet(false, true)) {
+            log.warn("IGDB-only sync skipped -- another cache job is in progress");
+            return false;
+        }
+        long t0 = System.currentTimeMillis();
+        try {
+            log.info("IGDB-only sync started at {}", java.time.Instant.now());
+            igdbSyncService.syncAll();
+            log.info("IGDB-only sync finished. Elapsed: {} ms", System.currentTimeMillis() - t0);
+            return true;
+        } finally {
+            running.set(false);
+        }
+    }
+
+    /**
+     * Tier price estimation only. Returns false if another cache job is already running.
+     */
+    public boolean runPriceEstimationOnly() {
+        if (!running.compareAndSet(false, true)) {
+            log.warn("Price-estimation-only sync skipped -- another cache job is in progress");
+            return false;
+        }
+        long t0 = System.currentTimeMillis();
+        try {
+            log.info("Price-estimation-only sync started at {}", java.time.Instant.now());
+            priceEstimationService.estimateAll();
+            log.info("Price-estimation-only sync finished. Elapsed: {} ms", System.currentTimeMillis() - t0);
+            return true;
+        } finally {
+            running.set(false);
+        }
+    }
+
+    /**
+     * CheapShark storefront prices only. Returns false if another cache job is already running.
+     */
+    public boolean runCheapSharkSyncOnly() {
+        if (!running.compareAndSet(false, true)) {
+            log.warn("CheapShark-only sync skipped -- another cache job is in progress");
+            return false;
+        }
+        long t0 = System.currentTimeMillis();
+        try {
+            log.info("CheapShark-only sync started at {}", java.time.Instant.now());
+            cheapSharkSyncService.syncAll();
+            log.info("CheapShark-only sync finished. Elapsed: {} ms", System.currentTimeMillis() - t0);
+            return true;
+        } finally {
+            running.set(false);
+        }
+    }
+
+    /**
+     * Incremental HLTB hours sync only (games that still need sync). Returns false if another job is running.
+     */
+    public boolean runHltbSyncOnly() {
+        if (!running.compareAndSet(false, true)) {
+            log.warn("HLTB-only sync skipped -- another cache job is in progress");
+            return false;
+        }
+        long t0 = System.currentTimeMillis();
+        try {
+            log.info("HLTB-only sync started at {}", java.time.Instant.now());
+            hltbSyncService.syncAll();
+            log.info("HLTB-only sync finished. Elapsed: {} ms", System.currentTimeMillis() - t0);
+            return true;
+        } finally {
+            running.set(false);
+        }
+    }
+
+    /**
+     * Clears HLTB sync timestamps then runs a full HLTB pass. Returns {@code null} if another job is running.
+     */
+    public Integer runHltbResetAndSync() {
+        if (!running.compareAndSet(false, true)) {
+            log.warn("HLTB reset+sync skipped -- another cache job is in progress");
+            return null;
+        }
+        long t0 = System.currentTimeMillis();
+        try {
+            log.info("HLTB reset+sync started at {}", java.time.Instant.now());
+            int cleared = hltbSyncService.resetAll();
+            hltbSyncService.syncAll();
+            log.info("HLTB reset+sync finished (cleared {} rows). Elapsed: {} ms",
+                    cleared, System.currentTimeMillis() - t0);
+            return cleared;
+        } finally {
+            running.set(false);
+        }
+    }
+
     @Scheduled(cron = "${cache.refresh.cron}")
     public void runCacheRefresh() {
         if (!running.compareAndSet(false, true)) {

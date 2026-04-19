@@ -1,5 +1,9 @@
 # Decisions
 
+## 2026-04-20
+
+- **Admin partial cache sync:** `POST /admin/sync` runs the full nightly pipeline (IGDB → price estimation → CheapShark → HLTB). **`POST /admin/sync/igdb`**, **`/sync/price-estimation`**, **`/sync/cheapshark`**, **`/sync/hltb`** run a single phase each; all use the same **`CacheRefreshJob` lock** (409 if another job is in progress). **`POST /admin/hltb-resync`** (clear HLTB timestamps + full HLTB pass) also takes that lock. **When to use each** + full **`/admin`** route list: **`docs/ADMIN_API.md`**.
+
 ## 2026-04-19
 
 - **Ranking price assembly:** `GameCache.getEffectivePriceCents()` **prefers `cheapshark_price_cents` when set**, else tier estimate. (Earlier **`min(cs, est)`** incorrectly made the **$14.99 PC tier** beat higher Steam deal prices.) **`priceIsTrackedDeal`** and **`cheapshark_deal_url`** apply when the **displayed** cent value equals the CheapShark column. Nominal **free** substitute when `includeFreeToPlay` uses **$1.00** and is **not** flagged as a tracked deal.

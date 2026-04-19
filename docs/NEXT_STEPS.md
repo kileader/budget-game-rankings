@@ -4,7 +4,7 @@
 
 1. **Wishlist Watchtower (v1)** — `wishlist_entry` + `WishlistEntry` exist; add backend API, wire auth, minimal frontend (list + add/remove from rankings). Price alerts / CheapShark alerts = later slice.
 2. **Game detail page** (`/game/:id`) — pairs with wishlist; Leaf feedback. Can trail v1 wishlist or follow immediately after.
-3. **US pricing trust** — CheapShark + `steam_app_id` coverage, sync health; **Deal/Est. badges** shipped (`priceIsTrackedDeal`). Further: Steam list price research, etc.
+3. **US pricing trust** — core CheapShark sync bug fixed (2026-04-19; was deserializing array as single object). After deploying, `POST /admin/sync` to populate real prices. Remaining: `steam_app_id` coverage gaps, store name on tooltip, Steam list price research.
 
 ## Active queue (maintenance)
 
