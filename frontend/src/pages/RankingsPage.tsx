@@ -72,6 +72,16 @@ function hltbSearchUrl(title: string): string {
   return `https://howlongtobeat.com/?q=${encodeURIComponent(title.trim())}`;
 }
 
+/** Only link to HLTB when we have a real match; fallback hours are not tied to an HLTB page. */
+function canLinkHltbSearch(result: RankingResult): boolean {
+  return result.hltbFound === true && result.hltbHours !== null;
+}
+
+function igdbPageUrl(result: RankingResult): string | null {
+  const u = result.igdbUrl?.trim();
+  return u ? u : null;
+}
+
 function steamStoreUrl(steamAppId: number): string {
   return `https://store.steampowered.com/app/${steamAppId}/`;
 }
@@ -93,6 +103,7 @@ function primaryCoverAriaLabel(result: RankingResult): string {
 
 /** Card price link: CheapShark deal when present, else Steam store page when we have an app id. */
 function cardPriceHref(result: RankingResult): string | null {
+  if (result.priceCents == null || result.priceCents <= 0) return null;
   if (result.cheapsharkDealUrl) return result.cheapsharkDealUrl;
   if (result.steamAppId != null) return steamStoreUrl(result.steamAppId);
   return null;
@@ -762,6 +773,28 @@ function formatNumber(n: number | null, decimals = 1): string {
   return n.toFixed(decimals);
 }
 
+function PriceSourceBadge({ result }: { result: RankingResult }) {
+  if (result.priceCents == null || result.priceCents <= 0) return null;
+  if (result.priceIsTrackedDeal === true) {
+    return (
+      <span className="price-source-badge price-source-badge--deal" title="Price from CheapShark deal tracking">
+        Deal
+      </span>
+    );
+  }
+  if (result.priceIsTrackedDeal === false) {
+    return (
+      <span
+        className="price-source-badge price-source-badge--est"
+        title="Estimated from platform tier when no tracked PC deal"
+      >
+        Est.
+      </span>
+    );
+  }
+  return null;
+}
+
 // --- Sub-components ---
 
 function FilterBar({
@@ -1081,33 +1114,40 @@ function ResultRow({
       <td>{formatNumber(result.igdbRating)}</td>
       <td>
         {result.hltbHours !== null ? (
-          <a
-            className="table-external-link"
-            href={hltbSearchUrl(result.title)}
-            target="_blank"
-            rel="noreferrer"
-            title="HowLongToBeat (opens in new tab)"
-          >
-            {formatNumber(result.hltbHours)} hrs
-            <span className="sr-only"> — HowLongToBeat, opens in new tab</span>
-          </a>
+          canLinkHltbSearch(result) ? (
+            <a
+              className="table-external-link"
+              href={hltbSearchUrl(result.title)}
+              target="_blank"
+              rel="noreferrer"
+              title="HowLongToBeat (opens in new tab)"
+            >
+              {formatNumber(result.hltbHours)} hrs
+              <span className="sr-only"> — HowLongToBeat, opens in new tab</span>
+            </a>
+          ) : (
+            `${formatNumber(result.hltbHours)} hrs`
+          )
         ) : (
           '—'
         )}
       </td>
       <td>
-        {(() => {
-          const href = cardPriceHref(result);
-          if (href) {
-            return (
-              <a href={href} target="_blank" rel="noreferrer" className="table-external-link">
-                {formatPrice(result.priceCents)}
-                <span className="sr-only"> — {cardPriceLinkLabel(result)}</span>
-              </a>
-            );
-          }
-          return formatPrice(result.priceCents);
-        })()}
+        <span className="price-with-source">
+          {(() => {
+            const href = cardPriceHref(result);
+            if (href) {
+              return (
+                <a href={href} target="_blank" rel="noreferrer" className="table-external-link">
+                  {formatPrice(result.priceCents)}
+                  <span className="sr-only"> — {cardPriceLinkLabel(result)}</span>
+                </a>
+              );
+            }
+            return formatPrice(result.priceCents);
+          })()}
+          <PriceSourceBadge result={result} />
+        </span>
       </td>
       <td>{formatNumber(result.valueScore, 2)}</td>
       <td>
@@ -1273,21 +1313,19 @@ function GameCard({
             {result.valueScore !== null ? formatNumber(result.valueScore, 2) : '—'}
           </span>
           <span title="IGDB user rating">
-            {result.igdbUrl ? (
-              <a
-                href={result.igdbUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="game-card-stat-link"
-              >
-                ⭐ {formatNumber(result.igdbRating)}
-                <span className="sr-only"> — IGDB, opens in new tab</span>
-              </a>
-            ) : (
-              <>⭐ {formatNumber(result.igdbRating)}</>
-            )}
+            {(() => {
+              const igdb = igdbPageUrl(result);
+              return igdb ? (
+                <a href={igdb} target="_blank" rel="noreferrer" className="game-card-stat-link">
+                  ⭐ {formatNumber(result.igdbRating)}
+                  <span className="sr-only"> — IGDB, opens in new tab</span>
+                </a>
+              ) : (
+                <>⭐ {formatNumber(result.igdbRating)}</>
+              );
+            })()}
           </span>
-          <span title="Price">
+          <span className="game-card-price-with-source" title="Price">
             {(() => {
               const priceLink = cardPriceHref(result);
               const priceLabel = formatPrice(result.priceCents);
@@ -1301,18 +1339,31 @@ function GameCard({
               }
               return priceLabel;
             })()}
+            <PriceSourceBadge result={result} />
           </span>
-          <span title={result.hltbHours !== null ? 'HowLongToBeat (opens in new tab)' : 'Playtime'}>
+          <span
+            title={
+              canLinkHltbSearch(result)
+                ? 'HowLongToBeat (opens in new tab)'
+                : result.hltbHours !== null
+                  ? 'Playtime (estimated when no HLTB match)'
+                  : 'Playtime'
+            }
+          >
             {result.hltbHours !== null ? (
-              <a
-                href={hltbSearchUrl(result.title)}
-                target="_blank"
-                rel="noreferrer"
-                className="game-card-stat-link"
-              >
-                {formatNumber(result.hltbHours)}h
-                <span className="sr-only"> — HowLongToBeat, opens in new tab</span>
-              </a>
+              canLinkHltbSearch(result) ? (
+                <a
+                  href={hltbSearchUrl(result.title)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="game-card-stat-link"
+                >
+                  {formatNumber(result.hltbHours)}h
+                  <span className="sr-only"> — HowLongToBeat, opens in new tab</span>
+                </a>
+              ) : (
+                `${formatNumber(result.hltbHours)}h`
+              )
             ) : (
               '—'
             )}
@@ -1529,7 +1580,7 @@ export default function RankingsPage() {
             </p>
             <p>
               <strong>Grid cards:</strong> the small site icon marks this app&apos;s <strong>value score</strong>;
-              ⭐ is the IGDB user rating (link when we have an IGDB page); price links to CheapShark when there is a tracked deal, otherwise to Steam when we know the Steam app id; hours link to a HowLongToBeat search; platform names link to storefronts when we can infer them. Content rating (ESRB, etc.) appears on the right when IGDB lists one.
+              ⭐ is the IGDB user rating (link only when we have an IGDB game URL); price links when there is a CheapShark deal or a Steam app id (and we have a price). A small <strong>Deal</strong> or <strong>Est.</strong> tag shows whether the dollar amount is from tracked PC deals vs a tier estimate. Hours link to HowLongToBeat only when playtime came from an HLTB match (otherwise the number is plain text). Platform names link to storefronts when we can infer them. Content rating (ESRB, etc.) appears on the right when IGDB lists one.
             </p>
             <p>
               Playtime comes from <a href="https://howlongtobeat.com" target="_blank" rel="noreferrer">HowLongToBeat</a>.

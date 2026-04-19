@@ -44,7 +44,9 @@ class RankingControllerTest {
                                 "Game One",
                                 new BigDecimal("90.00"),
                                 new BigDecimal("12.00"),
+                                true,
                                 1999,
+                                true,
                                 new BigDecimal("54.0270"),
                                 "https://example.com/cover.jpg",
                                 "https://igdb.com/game-one",
@@ -58,7 +60,9 @@ class RankingControllerTest {
                                 "Game Two",
                                 new BigDecimal("85.00"),
                                 new BigDecimal("10.00"),
+                                false,
                                 2499,
+                                false,
                                 new BigDecimal("34.0136"),
                                 null,
                                 "https://igdb.com/game-two",
@@ -87,7 +91,11 @@ class RankingControllerTest {
                 .andExpect(jsonPath("$.results[0].platformIds[0]").value(6))
                 .andExpect(jsonPath("$.results[1].platformIds[0]").value(167))
                 .andExpect(jsonPath("$.results[0].ageRatingDisplay").value("ESRB · Teen"))
-                .andExpect(jsonPath("$.results[1].ageRatingDisplay").value(nullValue()));
+                .andExpect(jsonPath("$.results[1].ageRatingDisplay").value(nullValue()))
+                .andExpect(jsonPath("$.results[0].hltbFound").value(true))
+                .andExpect(jsonPath("$.results[1].hltbFound").value(false))
+                .andExpect(jsonPath("$.results[0].priceIsTrackedDeal").value(true))
+                .andExpect(jsonPath("$.results[1].priceIsTrackedDeal").value(false));
     }
 
     @Test

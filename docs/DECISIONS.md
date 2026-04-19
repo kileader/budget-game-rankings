@@ -1,5 +1,13 @@
 # Decisions
 
+## 2026-04-18
+
+- **Handoff refresh:** `docs/HANDOFF.md` and `docs/NEXT_STEPS.md` rewritten for current rankings UI (grid meta row, favicon value score, conditional HLTB/IGDB/price links, `hltbFound` on API). Next product focus: **Wishlist Watchtower v1** (entity/DB exist; API/UI TBD).
+- **US pricing scope:** Improve **US** trust (CheapShark + estimates + honest labeling) before multi-region or per-store API sprawl. Aligns with existing **USD canonical** baseline (2026-04-03).
+- **HLTB outbound links:** Only when **`hltb_found`** is true in DB; genre (or other) fallback hours stay **plain text** so users are not sent to irrelevant HLTB search results.
+- **`priceIsTrackedDeal` on rankings JSON:** UI shows **Deal** vs **Est.** for the dollar amount; backend sets flag from `cheapshark_price_cents != null`, except nominal free substitute when `includeFreeToPlay` applies.
+- **My Setup + weights:** Onboarding save merges **Advanced Scoring** weights from `localStorage` (`bgr_last_ranking_filters`) or keeps existing **My Setup** config weights so `updateConfig` no longer resets them to 1.
+
 ## 2026-04-14
 
 - **Optional shopping assistant:** ship as an **opt-in** feature. First slice: **runtime context** (current filters + API/ranking payload + user message). Add **retrieval / RAG** over the existing nightly **game cache DB** when answers need broader catalog grounding or context would exceed practical token limits. Nightly refresh + admin resync already match a KB-style cadence.

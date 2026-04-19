@@ -1,30 +1,32 @@
 # Next Steps
 
-## Active Queue
+## Start here (2026-04-18)
 
-1. **Deploy V8 + V9 migrations** — push and verify new platforms and scoring weight columns are live.
-2. **Mobile-first CSS pass** — flip `max-width` media queries to `min-width`.
-3. **Weight persistence in onboarding** — save weight prefs to localStorage and "My Setup" config so they survive reload.
+1. **Wishlist Watchtower (v1)** — `wishlist_entry` + `WishlistEntry` exist; add backend API, wire auth, minimal frontend (list + add/remove from rankings). Price alerts / CheapShark alerts = later slice.
+2. **Game detail page** (`/game/:id`) — pairs with wishlist; Leaf feedback. Can trail v1 wishlist or follow immediately after.
+3. **US pricing trust** — CheapShark + `steam_app_id` coverage, sync health; **Deal/Est. badges** shipped (`priceIsTrackedDeal`). Further: Steam list price research, etc.
 
-## Planned Features
+## Active queue (maintenance)
 
-- **"No thanks" / hidden games** — **v1 shipped** (localStorage + × on cover). Remaining: optional **DB sync** when logged in; dedicated **hidden list** UI if desired.
-- **Game detail page** — in-app route (e.g. `/game/:id`); primary card action when shipped. Pairs with wishlist; Leaf feedback.
-- **Commerce-first cover (Leaf)** — **Shipped:** cover tap = **`cheapsharkDealUrl` → Steam store (`steamAppId`) → `igdbUrl`**; title still **IGDB**. **`steamAppId`** on `RankingResultDto` / JSON. **Deferred:** referral/affiliate query params + short UI disclosure.
-- **HLTB deep links (optional)** — add `hltb_game_id` to `game_cache` + DTO for stable HLTB game URLs; today playtime links to search from title.
-- **Optional shopping assistant** — off by default or gated; user message + rankings/API context first, then retrieval (RAG) over the nightly game cache when token limits or breadth require it. Leaf: treat the DB as the KB.
-- Wishlist Watchtower — Kevin's reframe: ranking engine stays as core, wishlist + price alerts become the prominent user-facing angle.
-- Sale sniper / price alerts — CheapShark has a price alert API; pairs with wishlist ("alert me when this hits $X") — Hunziboi feedback.
-- Community tagging — "worth at full price" / "wait for sale", Steam-style — Hunziboi feedback; non-trivial scope (DB, UI, moderation), backlog.
+- **Production migrations** — confirm Railway (or host) has applied through **V11** (`exclude_adult_rated`) and prior ranking-config migrations.
+- **Mobile-first CSS** — flip `max-width` → `min-width` where appropriate.
+- **Onboarding vs weights** — **done:** My Setup upsert reads weights from `bgr_last_ranking_filters` or preserves existing config.
 
-## Deferred / Known Gaps
+## Planned features
 
-- Mobile-first CSS pass (currently desktop-first).
-- `POST /admin/sync` is synchronous; make async if timeout becomes a problem.
-- Token revocation / immediate effect of deactivation — deferred until there's a reason to add complexity.
-- Token in localStorage — acceptable, known XSS tradeoff, no plans to change.
+- **"No thanks"** — v1 shipped (localStorage). Optional: DB sync when logged in; hidden-list UI.
+- **Commerce-first cover** — shipped (deal → Steam → IGDB). Deferred: affiliate params + disclosure.
+- **HLTB deep links (optional)** — `hltb_game_id` on cache + DTO for direct game URLs (today: search URL when `hltbFound`).
+- **Shopping assistant (optional)** — opt-in; RAG over nightly cache when needed (`docs/DECISIONS.md`).
+- **Sale sniper / alerts** — CheapShark alert API; pairs with wishlist.
+- **Community tagging** — backlog.
+
+## Deferred / known gaps
+
+- `POST /admin/sync` synchronous.
+- Token revocation on deactivate — deferred.
+- Token in localStorage — known XSS tradeoff.
 
 ## Usage
 
-- Keep this file short.
-- Replace completed items instead of accumulating stale history.
+- Keep this file short; replace completed bullets instead of stacking stale history.

@@ -12,7 +12,11 @@ export type RankingResult = {
   title: string;
   igdbRating: number;
   hltbHours: number | null;
+  /** True when hours came from a HowLongToBeat match; false when genre (or other) fallback. */
+  hltbFound?: boolean;
   priceCents: number | null;
+  /** True when price is from CheapShark; false when tier estimate (or nominal free substitute). */
+  priceIsTrackedDeal?: boolean;
   valueScore: number | null;
   coverImageUrl: string | null;
   igdbUrl: string | null;

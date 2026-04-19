@@ -211,12 +211,16 @@ public class RankingService {
         BigDecimal valueScore = computeValueScore(game, query);
 
         int[] platformIds = game.getPlatformIds() != null ? game.getPlatformIds() : new int[0];
+        boolean priceIsTrackedDeal = game.getCheapsharkPriceCents() != null
+                && !(game.isFree() && query.includeFreeToPlay());
         return new RankingResultDto(
                 game.getIgdbGameId(),
                 game.getTitle(),
                 game.getIgdbRating(),
                 game.getHltbHours(),
+                game.isHltbFound(),
                 priceCents,
+                priceIsTrackedDeal,
                 valueScore,
                 game.getCoverImageUrl(),
                 game.getIgdbUrl(),
