@@ -1,6 +1,6 @@
 # Handoff
 
-## Latest snapshot (2026-04-20)
+## Latest snapshot (2026-04-19)
 
 **Admin API:** Full reference and **when to use each sync endpoint** — `docs/ADMIN_API.md`. Partial sync: `POST /admin/sync/cheapshark`, `/admin/sync/hltb`, `/admin/sync/igdb`, `/admin/sync/price-estimation`; full pipeline `POST /admin/sync`; HLTB reset+full `POST /admin/hltb-resync`. All share the cache lock (**409** if busy).
 

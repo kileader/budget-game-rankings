@@ -1,14 +1,11 @@
 # Decisions
 
-## 2026-04-20
-
-- **Admin partial cache sync:** `POST /admin/sync` runs the full nightly pipeline (IGDB → price estimation → CheapShark → HLTB). **`POST /admin/sync/igdb`**, **`/sync/price-estimation`**, **`/sync/cheapshark`**, **`/sync/hltb`** run a single phase each; all use the same **`CacheRefreshJob` lock** (409 if another job is in progress). **`POST /admin/hltb-resync`** (clear HLTB timestamps + full HLTB pass) also takes that lock. **When to use each** + full **`/admin`** route list: **`docs/ADMIN_API.md`**.
-
 ## 2026-04-19
 
 - **Ranking price assembly:** `GameCache.getEffectivePriceCents()` **prefers `cheapshark_price_cents` when set**, else tier estimate. (Earlier **`min(cs, est)`** incorrectly made the **$14.99 PC tier** beat higher Steam deal prices.) **`priceIsTrackedDeal`** and **`cheapshark_deal_url`** apply when the **displayed** cent value equals the CheapShark column. Nominal **free** substitute when `includeFreeToPlay` uses **$1.00** and is **not** flagged as a tracked deal.
 - **Tier estimation:** `PriceEstimationService` unions IGDB **`platform_ids`** with **Windows (6)** whenever **`steam_app_id`** is present (Steam catalog ⇒ PC tier participates in the **lowest-tier pick** across platforms), including when IGDB omits PC from platforms. If **`platform_ids` is empty** but **`steam_app_id`** is set, only the PC tier is used (~$14.99 baseline). (Not the same as the old **`min(cheapshark, estimate)`** effective price.)
-- **IGDB Steam id:** `IgdbClient.extractSteamAppId` uses the **first** Steam (`category` 1) row from IGDB after filter (same as before pricing work). Numeric min/max across ids was considered and rejected — newer titles have **larger** app ids than older bundles/demos, so min would pick the wrong row. Wrong or missing ids still require good IGDB data.
+- **IGDB Steam id:** Sync requests **`external.steam`** and **`IgdbClient.resolveSteamAppId`** prefers that, then falls back to the **first** Steam row in **`external_games`** (`category` 1, parse `uid`). IGDB’s **`external`** map is the documented first-class Steam link; relying on **`external_games`** alone matched almost nothing. Numeric min/max across multiple Steam `uid`s was rejected — use first matching row after filter.
+- **Admin partial cache sync:** `POST /admin/sync` runs the full nightly pipeline (IGDB → price estimation → CheapShark → HLTB). **`POST /admin/sync/igdb`**, **`/sync/price-estimation`**, **`/sync/cheapshark`**, **`/sync/hltb`** run a single phase each; all use the same **`CacheRefreshJob` lock** (409 if another job is in progress). **`POST /admin/hltb-resync`** (clear HLTB timestamps + full HLTB pass) also takes that lock. **When to use each** + full **`/admin`** route list: **`docs/ADMIN_API.md`**.
 
 ## 2026-04-18
 

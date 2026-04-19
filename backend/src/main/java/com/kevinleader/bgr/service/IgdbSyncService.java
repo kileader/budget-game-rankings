@@ -92,7 +92,7 @@ public class IgdbSyncService {
         entity.setMultiplayerOnly(dto.gameModes() != null
                 && !dto.gameModes().isEmpty()
                 && !IgdbClient.isSinglePlayer(dto.gameModes()));
-        entity.setSteamAppId(IgdbClient.extractSteamAppId(dto.externalGames()));
+        entity.setSteamAppId(IgdbClient.resolveSteamAppId(dto));
         entity.setAgeRatingDisplay(AgeRatingDisplayFormatter.fromIgdbAgeRatings(dto.ageRatings()));
         entity.setLastIgdbSync(OffsetDateTime.now());
     }
