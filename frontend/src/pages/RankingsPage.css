@@ -709,14 +709,29 @@
   }
 }
 
-.game-card-content-rating {
-  margin: -2px 0 6px;
+.game-card-meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin: -2px 0 8px;
+  min-height: 1.35em;
+}
+
+.game-card-meta-platforms {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.game-card-meta-esrb {
+  margin: 0;
+  flex: 0 1 48%;
   font-size: 10px;
-  line-height: 1.2;
-  min-height: 1.2em;
+  line-height: 1.25;
   font-weight: 600;
   color: var(--text);
-  opacity: 0.9;
+  opacity: 0.75;
+  text-align: right;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -733,20 +748,19 @@
 }
 
 .game-card-stat-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-weight: 600;
   color: var(--text);
   opacity: 0.92;
 }
 
-.game-card-stat-sep {
-  opacity: 0.45;
-  user-select: none;
-}
-
-/* Shares the stats row so a single “PC” is not isolated on its own line */
-.game-card-platforms-inline {
-  min-width: 0;
-  flex: 1 1 4.5rem;
+.game-card-value-icon {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  object-fit: contain;
 }
 
 .game-card-stats a {
@@ -897,10 +911,10 @@
   margin-bottom: 6px;
 }
 
-.skeleton-content-rating {
-  width: 62%;
-  min-height: 10px;
-  margin: -2px 0 6px;
+.skeleton-meta-row {
+  width: 100%;
+  height: 11px;
+  margin: -2px 0 8px;
   opacity: 0.85;
 }
 
@@ -908,7 +922,7 @@
   width: 100%;
   height: 14px;
   border-radius: 4px;
-  margin-top: 2px;
+  margin-top: 0;
 }
 
 .rankings-table-skeleton-wrap {

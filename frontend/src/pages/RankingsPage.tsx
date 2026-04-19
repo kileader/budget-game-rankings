@@ -91,6 +91,19 @@ function primaryCoverAriaLabel(result: RankingResult): string {
   return '';
 }
 
+/** Card price link: CheapShark deal when present, else Steam store page when we have an app id. */
+function cardPriceHref(result: RankingResult): string | null {
+  if (result.cheapsharkDealUrl) return result.cheapsharkDealUrl;
+  if (result.steamAppId != null) return steamStoreUrl(result.steamAppId);
+  return null;
+}
+
+function cardPriceLinkLabel(result: RankingResult): string {
+  if (result.cheapsharkDealUrl) return `View PC deal for ${result.title} (opens in new tab)`;
+  if (result.steamAppId != null) return `${result.title} on Steam (opens in new tab)`;
+  return '';
+}
+
 /** Scan-friendly labels (IGDB platform ids). Fallback shortens catalog name. */
 const PLATFORM_SHORT: Record<number, string> = {
   6: 'PC',
@@ -1083,13 +1096,18 @@ function ResultRow({
         )}
       </td>
       <td>
-        {result.cheapsharkDealUrl ? (
-          <a href={result.cheapsharkDealUrl} target="_blank" rel="noreferrer">
-            {formatPrice(result.priceCents)}
-          </a>
-        ) : (
-          formatPrice(result.priceCents)
-        )}
+        {(() => {
+          const href = cardPriceHref(result);
+          if (href) {
+            return (
+              <a href={href} target="_blank" rel="noreferrer" className="table-external-link">
+                {formatPrice(result.priceCents)}
+                <span className="sr-only"> — {cardPriceLinkLabel(result)}</span>
+              </a>
+            );
+          }
+          return formatPrice(result.priceCents);
+        })()}
       </td>
       <td>{formatNumber(result.valueScore, 2)}</td>
       <td>
@@ -1112,7 +1130,7 @@ function GameCardSkeleton() {
       <div className="game-card-cover skeleton-shimmer" />
       <div className="game-card-body">
         <div className="skeleton-line skeleton-title-block skeleton-shimmer" />
-        <div className="skeleton-line skeleton-content-rating skeleton-shimmer" />
+        <div className="skeleton-line skeleton-meta-row skeleton-shimmer" />
         <div className="skeleton-stats skeleton-shimmer" />
       </div>
     </article>
@@ -1223,30 +1241,66 @@ function GameCard({
             );
           })()}
         </h3>
-        <p
-          className="game-card-content-rating"
-          title={contentRating ? 'Content rating from IGDB' : undefined}
-          aria-hidden={!contentRating}
-        >
-          {contentRating ? contentRating : '\u00A0'}
-        </p>
+        <div className="game-card-meta-row">
+          <div className="game-card-meta-platforms">
+            {platformEntries.length > 0 ? (
+              <PlatformScanLine entries={platformEntries} result={result} />
+            ) : (
+              <span className="platform-scan-line">—</span>
+            )}
+          </div>
+          <p
+            className="game-card-meta-esrb"
+            title={contentRating ? 'Content rating from IGDB' : undefined}
+          >
+            {contentRating ? contentRating : '—'}
+          </p>
+        </div>
         <div className="game-card-stats">
           <span
             className="game-card-stat-value"
             title="Value score from the current ranking formula (rating, playtime, price, and Advanced Scoring weights)."
           >
+            <img
+              src="/bgr_favicon.svg"
+              alt=""
+              className="game-card-value-icon"
+              width={12}
+              height={12}
+              decoding="async"
+            />
             <span className="sr-only">Value score </span>
             {result.valueScore !== null ? formatNumber(result.valueScore, 2) : '—'}
           </span>
-          <span title="IGDB Rating">⭐ {formatNumber(result.igdbRating)}</span>
-          <span title="Price">
-            {result.cheapsharkDealUrl ? (
-              <a href={result.cheapsharkDealUrl} target="_blank" rel="noreferrer">
-                {formatPrice(result.priceCents)}
+          <span title="IGDB user rating">
+            {result.igdbUrl ? (
+              <a
+                href={result.igdbUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="game-card-stat-link"
+              >
+                ⭐ {formatNumber(result.igdbRating)}
+                <span className="sr-only"> — IGDB, opens in new tab</span>
               </a>
             ) : (
-              formatPrice(result.priceCents)
+              <>⭐ {formatNumber(result.igdbRating)}</>
             )}
+          </span>
+          <span title="Price">
+            {(() => {
+              const priceLink = cardPriceHref(result);
+              const priceLabel = formatPrice(result.priceCents);
+              if (priceLink) {
+                return (
+                  <a href={priceLink} target="_blank" rel="noreferrer" className="game-card-stat-link">
+                    {priceLabel}
+                    <span className="sr-only"> — {cardPriceLinkLabel(result)}</span>
+                  </a>
+                );
+              }
+              return priceLabel;
+            })()}
           </span>
           <span title={result.hltbHours !== null ? 'HowLongToBeat (opens in new tab)' : 'Playtime'}>
             {result.hltbHours !== null ? (
@@ -1263,16 +1317,6 @@ function GameCard({
               '—'
             )}
           </span>
-          {platformEntries.length > 0 ? (
-            <>
-              <span className="game-card-stat-sep" aria-hidden>
-                ·
-              </span>
-              <span className="game-card-platforms-inline">
-                <PlatformScanLine entries={platformEntries} result={result} />
-              </span>
-            </>
-          ) : null}
         </div>
       </div>
     </article>
@@ -1482,6 +1526,10 @@ export default function RankingsPage() {
               Each game is scored using: <strong>(IGDB rating × hours to beat) ÷ price</strong>.
               A game that costs $10, takes 50 hours, and scores 90 on IGDB ranks higher than a $60
               game that takes 8 hours and scores 95 — because you get more per dollar.
+            </p>
+            <p>
+              <strong>Grid cards:</strong> the small site icon marks this app&apos;s <strong>value score</strong>;
+              ⭐ is the IGDB user rating (link when we have an IGDB page); price links to CheapShark when there is a tracked deal, otherwise to Steam when we know the Steam app id; hours link to a HowLongToBeat search; platform names link to storefronts when we can infer them. Content rating (ESRB, etc.) appears on the right when IGDB lists one.
             </p>
             <p>
               Playtime comes from <a href="https://howlongtobeat.com" target="_blank" rel="noreferrer">HowLongToBeat</a>.
